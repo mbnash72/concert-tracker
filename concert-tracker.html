@@ -1,0 +1,1444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎵 Concert Tracker</title>
+<meta name="theme-color" content="#a855f7">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Concerts">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<style>
+:root{
+  --bg:#0f0f13;--surface:#1a1a24;--surface2:#22222f;--surface3:#2a2a3a;
+  --border:#2e2e40;--accent:#a855f7;--accent2:#ec4899;--glow:rgba(168,85,247,.18);
+  --text:#f0f0f8;--muted:#888899;--green:#22c55e;--yellow:#eab308;
+  --red:#ef4444;--blue:#60a5fa;--orange:#f97316;--radius:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;}
+
+/* ── HEADER ── */
+header{background:linear-gradient(135deg,#1a0a2e,#16213e 50%,#0f3460);border-bottom:1px solid var(--border);padding:14px 22px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;box-shadow:0 4px 24px rgba(0,0,0,.4);}
+header h1{font-size:1.35rem;font-weight:800;background:linear-gradient(90deg,#a855f7,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+header .sub{font-size:.72rem;color:var(--muted);margin-top:1px;}
+header .sp{flex:1;}
+.hbtn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);padding:8px 14px;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:500;display:flex;align-items:center;gap:6px;transition:all .2s;white-space:nowrap;}
+.hbtn:hover{color:var(--text);border-color:var(--accent);}
+.hbtn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;font-weight:600;box-shadow:0 0 14px rgba(168,85,247,.3);}
+.hbtn.primary:hover{opacity:.88;transform:translateY(-1px);}
+.hbtn.sync{border-color:rgba(34,197,94,.4);color:var(--green);}
+.hbtn.sync:hover{border-color:var(--green);background:rgba(34,197,94,.1);}
+.hbtn.sync:disabled{opacity:.5;cursor:not-allowed;}
+.sync-status{font-size:.68rem;color:var(--muted);white-space:nowrap;}
+
+/* ── TABS ── */
+.tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);padding:0 22px;overflow-x:auto;gap:0;}
+.tab{padding:12px 18px;font-size:.85rem;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;font-weight:500;white-space:nowrap;display:flex;align-items:center;gap:6px;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.badge{font-size:.65rem;padding:1px 6px;border-radius:8px;font-weight:700;}
+.badge.purple{background:var(--accent);color:#fff;}
+.badge.grey{background:var(--muted);color:#fff;}
+.badge.red{background:var(--red);color:#fff;}
+.badge.blue{background:var(--blue);color:#fff;}
+
+/* ── MAIN ── */
+main{padding:18px 22px;max-width:1280px;margin:0 auto;}
+
+/* ── STATS ── */
+.stats{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.sc{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;min-width:120px;}
+.sc .n{font-size:1.7rem;font-weight:800;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;}
+.sc .l{font-size:.7rem;color:var(--muted);margin-top:3px;}
+
+/* ── FILTER BAR ── */
+.fbar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.si{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;font-size:.83rem;flex:1;min-width:160px;}
+.si:focus{outline:none;border-color:var(--accent);}
+.si::placeholder{color:var(--muted);}
+.sel{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:8px;font-size:.83rem;cursor:pointer;}
+.sel:focus{outline:none;border-color:var(--accent);}
+
+/* ── ALERT STRIPS ── */
+.astrip{background:linear-gradient(135deg,rgba(168,85,247,.13),rgba(236,72,153,.08));border:1px solid rgba(168,85,247,.3);border-radius:var(--radius);padding:11px 15px;margin-bottom:9px;display:flex;align-items:flex-start;gap:11px;font-size:.84rem;}
+.astrip .ai{font-size:1.1rem;margin-top:1px;}
+.dpill{background:var(--accent);color:#fff;padding:1px 8px;border-radius:5px;font-weight:700;font-size:.72rem;margin-left:5px;}
+
+/* ── SHOW CARDS ── */
+.grid{display:flex;flex-direction:column;gap:9px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;display:grid;grid-template-columns:52px 1fr auto;gap:13px;align-items:start;transition:border-color .2s,transform .15s;position:relative;overflow:hidden;}
+.card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--accent),var(--accent2));}
+.card:hover{border-color:var(--accent);transform:translateX(2px);}
+.card.past{opacity:.52;}.card.past::before{background:var(--muted);}
+.card.cancelled{opacity:.38;}.card.cancelled::before{background:var(--red);}
+.card.soon::before{background:linear-gradient(180deg,var(--yellow),var(--orange));box-shadow:0 0 10px rgba(234,179,8,.3);}
+.card.nodate{grid-template-columns:1fr auto;}
+.dblock{background:var(--surface2);border-radius:8px;padding:7px 4px;text-align:center;min-width:52px;}
+.dblock .mo{font-size:.6rem;text-transform:uppercase;color:var(--accent);font-weight:700;letter-spacing:.08em;}
+.dblock .dy{font-size:1.45rem;font-weight:800;line-height:1;}
+.dblock .dw{font-size:.6rem;color:var(--muted);margin-top:1px;}
+.info .artist{font-size:1rem;font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.cbadge{background:rgba(239,68,68,.13);color:var(--red);font-size:.62rem;padding:1px 6px;border-radius:4px;font-weight:700;}
+.info .vline{color:var(--muted);font-size:.8rem;display:flex;align-items:center;gap:4px;}
+.chips{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap;}
+.chip{background:var(--surface2);border:1px solid var(--border);padding:3px 8px;border-radius:4px;font-size:.71rem;display:flex;align-items:center;gap:3px;color:var(--muted);}
+.chip.g{color:var(--green);border-color:rgba(34,197,94,.22);background:rgba(34,197,94,.06);}
+.chip.y{color:var(--yellow);border-color:rgba(234,179,8,.22);background:rgba(234,179,8,.06);}
+.chip.b{color:var(--blue);border-color:rgba(96,165,250,.22);background:rgba(96,165,250,.06);}
+.chip.p{color:#c4b5fd;border-color:rgba(196,181,253,.22);background:rgba(196,181,253,.06);}
+.chip.o{color:var(--orange);border-color:rgba(249,115,22,.22);background:rgba(249,115,22,.06);}
+.acts{display:flex;gap:5px;flex-shrink:0;}
+.ib{background:var(--surface2);border:1px solid var(--border);color:var(--muted);padding:6px;border-radius:6px;cursor:pointer;display:flex;align-items:center;transition:all .2s;}
+.ib:hover{color:var(--text);border-color:var(--accent);background:var(--glow);}
+.ib.del:hover{color:var(--red);border-color:var(--red);background:rgba(239,68,68,.09);}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:48px 20px;color:var(--muted);}
+.empty .ei{font-size:2.8rem;margin-bottom:12px;}
+.empty h3{font-size:.95rem;color:var(--text);margin-bottom:5px;}
+.empty p{font-size:.83rem;line-height:1.5;}
+
+/* ── FOLLOWING TAB ── */
+.following-layout{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:700px){.following-layout{grid-template-columns:1fr;}}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;}
+.panel h3{font-size:.95rem;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.artist-input-row{display:flex;gap:8px;margin-bottom:14px;}
+.artist-input-row input{flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:9px 12px;border-radius:8px;font-size:.87rem;}
+.artist-input-row input:focus{outline:none;border-color:var(--accent);}
+.artist-input-row input::placeholder{color:var(--muted);}
+.artist-pill{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;font-size:.87rem;}
+.artist-pill .ap-name{flex:1;font-weight:600;}
+.artist-pill .ap-genre{font-size:.72rem;color:var(--muted);}
+.artist-pill button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;line-height:1;padding:0 2px;transition:color .2s;}
+.artist-pill button:hover{color:var(--red);}
+.tip-box{background:var(--surface2);border:1px dashed var(--border);border-radius:8px;padding:12px 14px;font-size:.78rem;color:var(--muted);line-height:1.55;}
+.tip-box strong{color:var(--text);}
+.tip-box .venue-list{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+.venue-tag{background:var(--surface);border:1px solid var(--border);padding:2px 8px;border-radius:4px;font-size:.72rem;color:var(--muted);}
+
+/* ── DISCOVER TAB ── */
+.discover-header{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.discover-header h2{font-size:1rem;font-weight:700;flex:1;}
+.search-btn{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:.87rem;font-weight:600;display:flex;align-items:center;gap:8px;transition:opacity .2s,transform .1s;box-shadow:0 0 14px rgba(168,85,247,.3);}
+.search-btn:hover:not(:disabled){opacity:.88;transform:translateY(-1px);}
+.search-btn:disabled{opacity:.5;cursor:not-allowed;}
+.progress-bar{height:3px;background:var(--border);border-radius:2px;margin-bottom:14px;overflow:hidden;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;transition:width .4s ease;}
+.api-notice{background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.25);border-radius:8px;padding:11px 14px;font-size:.8rem;color:var(--muted);margin-bottom:14px;line-height:1.5;}
+.api-notice strong{color:var(--blue);}
+.api-notice a{color:var(--blue);text-decoration:none;}
+.api-notice a:hover{text-decoration:underline;}
+
+/* ── DISCOVER RESULT CARDS ── */
+.result-card{background:var(--surface);border:1px solid rgba(168,85,247,.2);border-radius:var(--radius);padding:14px 16px;display:grid;grid-template-columns:52px 1fr auto;gap:13px;align-items:start;margin-bottom:9px;position:relative;overflow:hidden;}
+.result-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--blue),var(--accent));}
+.result-card.already-added{opacity:.45;border-color:var(--border);}
+.result-card.already-added::before{background:var(--green);}
+.result-source{position:absolute;top:8px;right:8px;font-size:.6rem;padding:1px 6px;border-radius:3px;font-weight:700;text-transform:uppercase;}
+.src-bit{background:rgba(249,115,22,.15);color:var(--orange);}
+.src-tm{background:rgba(96,165,250,.15);color:var(--blue);}
+.add-btn{background:var(--glow);border:1px solid var(--accent);color:var(--accent);padding:7px 14px;border-radius:7px;cursor:pointer;font-size:.8rem;font-weight:600;white-space:nowrap;transition:all .2s;display:flex;align-items:center;gap:5px;}
+.add-btn:hover{background:var(--accent);color:#fff;}
+.add-btn.added{background:rgba(34,197,94,.1);border-color:var(--green);color:var(--green);cursor:default;}
+.buy-link{display:inline-flex;align-items:center;gap:4px;color:var(--orange);font-size:.72rem;font-weight:600;text-decoration:none;padding:3px 8px;border-radius:4px;background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.22);transition:all .2s;margin-top:0;}
+.buy-link:hover{background:rgba(249,115,22,.2);}
+.result-actions{display:flex;flex-direction:column;gap:6px;align-items:flex-end;}
+
+/* ── CALENDAR ── */
+.calhdr{display:flex;align-items:center;gap:8px;margin-bottom:16px;}
+.cnav{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:7px 13px;border-radius:7px;cursor:pointer;font-size:.83rem;transition:border-color .2s;}
+.cnav:hover{border-color:var(--accent);color:var(--accent);}
+.cml{font-size:1.05rem;font-weight:700;flex:1;}
+.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.cdh{text-align:center;font-size:.65rem;color:var(--muted);text-transform:uppercase;padding:7px 0;font-weight:600;}
+.cc{background:var(--surface);border:1px solid var(--border);border-radius:6px;min-height:70px;padding:5px;}
+.cc.other{opacity:.22;}.cc.today{border-color:var(--accent);}
+.cc.hasshow{border-color:rgba(168,85,247,.32);background:rgba(168,85,247,.04);}
+.ccn{font-size:.7rem;font-weight:600;color:var(--muted);margin-bottom:2px;}
+.cc.today .ccn{color:var(--accent);font-weight:800;}
+.ccev{font-size:.6rem;padding:2px 4px;border-radius:3px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;}
+.ccev.up{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;}
+.ccev.pa{background:var(--surface2);color:var(--muted);}
+.ccev.ca{background:rgba(239,68,68,.18);color:var(--red);}
+
+/* ── SETTINGS MODAL ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;}
+.overlay.hidden{display:none;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.6);}
+.mhdr{padding:18px 20px 0;display:flex;align-items:center;justify-content:space-between;}
+.mhdr h2{font-size:1.05rem;font-weight:700;}
+.mbody{padding:16px 20px 18px;display:flex;flex-direction:column;gap:13px;}
+.mftr{padding:0 20px 18px;display:flex;gap:8px;justify-content:flex-end;}
+.fg{display:flex;flex-direction:column;gap:5px;}
+.fg label{font-size:.7rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+.fi,.fs,.fta{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:9px 11px;border-radius:7px;font-size:.87rem;transition:border-color .2s;font-family:inherit;}
+.fi:focus,.fs:focus,.fta:focus{outline:none;border-color:var(--accent);}
+.fi::placeholder,.fta::placeholder{color:var(--muted);}
+.fs option{background:var(--surface2);}
+.fta{resize:vertical;min-height:60px;}
+.bsave{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;padding:9px 20px;border-radius:7px;cursor:pointer;font-size:.87rem;font-weight:600;transition:opacity .2s;}
+.bsave:hover{opacity:.88;}
+.bcancel{background:var(--surface2);border:1px solid var(--border);color:var(--muted);padding:9px 16px;border-radius:7px;cursor:pointer;font-size:.87rem;transition:all .2s;}
+.bcancel:hover{color:var(--text);}
+.xbtn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.3rem;line-height:1;padding:2px;transition:color .2s;}
+.xbtn:hover{color:var(--text);}
+.chkrow{display:flex;align-items:center;gap:7px;font-size:.87rem;}
+.chkrow input{accent-color:var(--accent);width:15px;height:15px;cursor:pointer;}
+.skey-row{display:flex;flex-direction:column;gap:4px;}
+.skey-row label{font-size:.7rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+.skey-desc{font-size:.74rem;color:var(--muted);margin-top:2px;}
+.skey-desc a{color:var(--blue);text-decoration:none;}
+.skey-desc a:hover{text-decoration:underline;}
+.divider{height:1px;background:var(--border);}
+.section-label{font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
+
+@keyframes spin{to{transform:rotate(360deg);}}
+@media(max-width:600px){
+  header{padding:11px 14px;}main{padding:12px 14px;}
+  .fr{grid-template-columns:1fr;}
+  .card{grid-template-columns:44px 1fr;}.acts{grid-column:1/-1;justify-content:flex-end;}
+  .result-card{grid-template-columns:44px 1fr;}.result-actions{grid-column:1/-1;flex-direction:row;}
+  .cc{min-height:48px;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div><h1>🎵 Concert Tracker</h1><div class="sub">SF Bay Area live music</div></div>
+  <div class="sp"></div>
+  <div id="sync-status-wrap" style="display:none;flex-direction:column;align-items:flex-end;gap:2px">
+    <button class="hbtn sync" id="sync-btn" onclick="syncFromSheets()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 013.51 15"/></svg>
+      Sync Sheet
+    </button>
+    <div class="sync-status" id="sync-status-label"></div>
+  </div>
+  <button class="hbtn" onclick="openSettingsModal()" title="Settings">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    Settings
+  </button>
+  <button class="hbtn" onclick="openImportModal()" style="margin-left:4px">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Import CSV
+  </button>
+  <button class="hbtn primary" onclick="openModal()" style="margin-left:4px">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Add Show
+  </button>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('upcoming')" id="tab-upcoming">Upcoming <span class="badge purple" id="b-upcoming">0</span></div>
+  <div class="tab" onclick="switchTab('past')" id="tab-past">Past <span class="badge grey" id="b-past">0</span></div>
+  <div class="tab" onclick="switchTab('cancelled')" id="tab-cancelled">Cancelled <span class="badge red" id="b-cancelled">0</span></div>
+  <div class="tab" onclick="switchTab('following')" id="tab-following">Following <span class="badge blue" id="b-following">0</span></div>
+  <div class="tab" onclick="switchTab('discover')" id="tab-discover">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    Discover
+  </div>
+  <div class="tab" onclick="switchTab('calendar')" id="tab-calendar">Calendar</div>
+</div>
+
+<main>
+
+<!-- UPCOMING -->
+<div id="view-upcoming">
+  <div id="alert-strips"></div>
+  <div class="fbar">
+    <input class="si" type="text" placeholder="🔍 Search artist, venue, who…" id="q-up" oninput="renderUpcoming()">
+    <select class="sel" id="sort-up" onchange="renderUpcoming()">
+      <option value="date-asc">Date ↑ soonest first</option>
+      <option value="date-desc">Date ↓ latest first</option>
+      <option value="artist">Artist A–Z</option>
+      <option value="venue">Venue A–Z</option>
+    </select>
+  </div>
+  <div class="stats" id="stats-up"></div>
+  <div class="grid" id="grid-up"></div>
+</div>
+
+<!-- PAST -->
+<div id="view-past" style="display:none">
+  <div class="fbar">
+    <input class="si" type="text" placeholder="🔍 Search…" id="q-pa" oninput="renderPast()">
+    <select class="sel" id="sort-pa" onchange="renderPast()">
+      <option value="date-desc">Date ↓ most recent</option>
+      <option value="date-asc">Date ↑ oldest first</option>
+      <option value="artist">Artist A–Z</option>
+    </select>
+  </div>
+  <div class="stats" id="stats-pa"></div>
+  <div class="grid" id="grid-pa"></div>
+</div>
+
+<!-- CANCELLED -->
+<div id="view-cancelled" style="display:none">
+  <div class="fbar"><input class="si" type="text" placeholder="🔍 Search…" id="q-ca" oninput="renderCancelled()"></div>
+  <div class="grid" id="grid-ca"></div>
+</div>
+
+<!-- FOLLOWING -->
+<div id="view-following" style="display:none">
+  <div style="margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+    <div style="font-size:.85rem;color:var(--muted);flex:1">Add artists you love — then hit <strong style="color:var(--accent)">Discover</strong> to find their upcoming Bay Area shows automatically.</div>
+    <button class="hbtn primary" onclick="switchTab('discover');discoverShows()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Search for Shows Now
+    </button>
+  </div>
+  <div class="following-layout">
+    <div class="panel">
+      <h3>🎤 Your Artists</h3>
+      <div class="artist-input-row">
+        <input id="new-artist" placeholder="Artist or band name…" onkeydown="if(event.key==='Enter')addArtist()">
+        <button class="hbtn primary" onclick="addArtist()">Add</button>
+      </div>
+      <div id="artist-list"></div>
+    </div>
+    <div class="panel">
+      <h3>💡 How Discovery Works</h3>
+      <div class="tip-box">
+        <strong>What gets searched:</strong> The app queries Bandsintown and (optionally) Ticketmaster for each artist in your list, filtering to shows within ~60 miles of San Francisco.<br><br>
+        <strong>Best coverage for:</strong> Touring artists, regional acts, jazz artists who list shows on Bandsintown (most do). Big venues like SFJazz, Yoshi's, The Fillmore, Great American, and The Independent are all covered.<br><br>
+        <strong>May not catch:</strong> Last-minute local bookings, shows only announced on social media, truly underground gigs. Add those manually with the "Add Show" button.<br><br>
+        <strong>Bay Area venues watched:</strong>
+        <div class="venue-list">
+          <span class="venue-tag">SFJazz</span><span class="venue-tag">Yoshi's</span><span class="venue-tag">The Fillmore</span><span class="venue-tag">Great American</span><span class="venue-tag">The Independent</span><span class="venue-tag">Freight & Salvage</span><span class="venue-tag">Kuumbwa Jazz</span><span class="venue-tag">PMP</span><span class="venue-tag">SCC</span><span class="venue-tag">Sweetwater</span><span class="venue-tag">Slim's</span><span class="venue-tag">Bottom of the Hill</span><span class="venue-tag">Fox Theater</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DISCOVER -->
+<div id="view-discover" style="display:none">
+  <div class="discover-header">
+    <h2>🔍 Find Bay Area Shows</h2>
+    <button class="search-btn" id="search-btn" onclick="discoverShows()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Search All Artists
+    </button>
+  </div>
+  <div id="api-notice-area"></div>
+  <div id="progress-area" style="display:none">
+    <div style="font-size:.8rem;color:var(--muted);margin-bottom:6px;" id="progress-label">Searching…</div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  </div>
+  <div id="discover-results"></div>
+</div>
+
+<!-- CALENDAR -->
+<div id="view-calendar" style="display:none">
+  <div class="calhdr">
+    <button class="cnav" onclick="calPrev()">← Prev</button>
+    <div class="cml" id="cal-label"></div>
+    <button class="cnav" onclick="calNext()">Next →</button>
+    <button class="cnav" onclick="calToday()">Today</button>
+  </div>
+  <div class="calgrid" id="cal-grid"></div>
+</div>
+
+</main>
+
+<!-- ADD/EDIT MODAL -->
+<div class="overlay hidden" id="modal-overlay" onclick="oclick(event,'modal-overlay',closeModal)">
+<div class="modal">
+  <div class="mhdr"><h2 id="modal-title">Add Show</h2><button class="xbtn" onclick="closeModal()">×</button></div>
+  <div class="mbody">
+    <div class="fg"><label>Artist / Band *</label><input class="fi" id="f-artist" placeholder="e.g. G Deloian Band"></div>
+    <div class="fr">
+      <div class="fg"><label>Date</label><input class="fi" type="date" id="f-date"></div>
+      <div class="fg"><label>Venue *</label><input class="fi" id="f-venue" placeholder="e.g. SCC, Yoshi's…"></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label>Doors Open</label><input class="fi" type="time" id="f-doors"></div>
+      <div class="fg"><label>Show Starts</label><input class="fi" type="time" id="f-show"></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label>Tickets</label>
+        <select class="fs" id="f-tix">
+          <option value="">— Unknown —</option>
+          <option value="y">✅ Have tickets</option>
+          <option value="n">❌ No tickets</option>
+          <option value="awaiting">⏳ Awaiting</option>
+          <option value="comp">🎁 Comp / Guest list</option>
+          <option value="door">🚪 Pay at door</option>
+        </select>
+      </div>
+      <div class="fg"><label>Ticket Location</label>
+        <select class="fs" id="f-tixloc">
+          <option value="">—</option>
+          <option value="Google Wallet">📱 Google Wallet</option>
+          <option value="Apple Wallet">🍎 Apple Wallet</option>
+          <option value="Ticketmaster App">🎫 Ticketmaster App</option>
+          <option value="AXS App">🎟 AXS App</option>
+          <option value="Gmail">📧 Gmail (starred)</option>
+          <option value="Email">📧 Email</option>
+          <option value="Etix">🎟 Etix</option>
+          <option value="Will Call">🏛 Will Call</option>
+          <option value="At the Door">🚪 At the Door</option>
+          <option value="Other">📌 Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label>Ticket Ref / Link</label><input class="fi" id="f-tixref" placeholder="Confirmation # or URL"></div>
+    <div class="fg"><label>Who's Going</label><input class="fi" id="f-who" placeholder="e.g. JB, N, G"></div>
+    <div class="fg"><label>Notes</label><textarea class="fta" id="f-notes" placeholder="Parking, opener, set time…"></textarea></div>
+    <label class="chkrow"><input type="checkbox" id="f-cancelled"><span>Mark as cancelled</span></label>
+  </div>
+  <div class="mftr"><button class="bcancel" onclick="closeModal()">Cancel</button><button class="bsave" onclick="saveShow()">Save Show</button></div>
+</div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="overlay hidden" id="settings-overlay" onclick="oclick(event,'settings-overlay',closeSettingsModal)">
+<div class="modal">
+  <div class="mhdr"><h2>⚙️ Settings</h2><button class="xbtn" onclick="closeSettingsModal()">×</button></div>
+  <div class="mbody">
+    <div class="section-label">Google Sheets Live Sync</div>
+    <div class="skey-row">
+      <label>Google Apps Script URL <span style="color:var(--green);font-size:.65rem">(Recommended · most reliable)</span></label>
+      <input class="fi" id="s-sheets-url" placeholder="https://script.google.com/macros/s/…/exec">
+      <div class="skey-desc">Paste your Apps Script web app URL here for automatic sync — works even when the app is opened as a local file. <a href="#" onclick="showScriptHelp();return false">How to set this up (5 min) →</a></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <label class="chkrow"><input type="checkbox" id="s-autosync"><span style="font-size:.83rem">Auto-sync when app opens</span></label>
+      <button class="hbtn" id="share-link-btn" onclick="copyShareLink()" style="display:none">📤 Copy Share Link for Friends</button>
+    </div>
+    <div class="divider"></div>
+    <div class="section-label">API Keys for Show Discovery</div>
+    <div class="skey-row">
+      <label>Bandsintown App ID <span style="color:var(--green);font-size:.65rem">(FREE · No signup needed)</span></label>
+      <input class="fi" id="s-bit" placeholder="Any string, e.g. concert_tracker_marc">
+      <div class="skey-desc">Used to search Bandsintown for artist events. <a href="https://bandsintown.com/" target="_blank">bandsintown.com</a> — just enter any app name, no account required.</div>
+    </div>
+    <div class="skey-row">
+      <label>Ticketmaster API Key <span style="color:var(--yellow);font-size:.65rem">(FREE · requires account)</span></label>
+      <input class="fi" id="s-tm" placeholder="Paste your API key…">
+      <div class="skey-desc">Get a free key in minutes at <a href="https://developer.ticketmaster.com/" target="_blank">developer.ticketmaster.com</a> → Create App. Adds broader venue coverage.</div>
+    </div>
+    <div class="divider"></div>
+    <div class="section-label">Location</div>
+    <div class="fr">
+      <div class="fg"><label>Search Radius (miles)</label>
+        <select class="fs" id="s-radius">
+          <option value="30">30 miles</option>
+          <option value="50" selected>50 miles</option>
+          <option value="75">75 miles</option>
+          <option value="100">100 miles</option>
+        </select>
+      </div>
+      <div class="fg"><label>Center City</label><input class="fi" id="s-city" value="San Francisco, CA" placeholder="City, State"></div>
+    </div>
+    <div class="divider"></div>
+    <div class="section-label">Data</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="hbtn" onclick="openImportModal();closeSettingsModal()">📥 Import CSV from Google Sheets</button>
+      <button class="hbtn" onclick="exportData()">📤 Export all data as JSON</button>
+      <button class="hbtn" style="color:var(--red)" onclick="clearAllData()">🗑 Clear all shows</button>
+    </div>
+  </div>
+  <div class="mftr"><button class="bcancel" onclick="closeSettingsModal()">Cancel</button><button class="bsave" onclick="saveSettings()">Save Settings</button></div>
+</div>
+</div>
+
+<!-- SCRIPT HELP MODAL -->
+<div class="overlay hidden" id="script-help-overlay" onclick="oclick(event,'script-help-overlay',()=>document.getElementById('script-help-overlay').classList.add('hidden'))">
+<div class="modal" style="max-width:600px">
+  <div class="mhdr"><h2>🔗 Connect Your Google Sheet (Apps Script)</h2><button class="xbtn" onclick="document.getElementById('script-help-overlay').classList.add('hidden')">×</button></div>
+  <div class="mbody">
+    <div style="font-size:.84rem;color:var(--muted);line-height:1.6;display:flex;flex-direction:column;gap:16px;">
+      <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);border-radius:8px;padding:12px 14px;color:var(--green);font-size:.8rem">
+        ✅ One-time setup, about 5 minutes. No API keys, no OAuth, no passwords. Your sheet stays private.
+      </div>
+      <div><strong style="color:var(--text)">Step 1 — Open the Apps Script editor</strong><br>
+        Open <strong>"Music (Live Shows)"</strong> in Google Sheets.<br>
+        Click <strong>Extensions → Apps Script</strong>. A new tab opens with a code editor.
+      </div>
+      <div><strong style="color:var(--text)">Step 2 — Paste this script</strong><br>
+        Delete everything in the editor, then paste exactly this:
+        <pre style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:.75rem;overflow-x:auto;margin-top:8px;white-space:pre">function doGet(e) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet()
+                  .getSheetByName('2026');
+  const [headers, ...rows] = sheet.getDataRange()
+                                   .getDisplayValues();
+  const shows = rows.map(r =>
+    Object.fromEntries(headers.map((h, i) => [h, r[i]]))
+  );
+  const cb = (e &amp;&amp; e.parameter &amp;&amp; e.parameter.callback)
+               || 'concertTrackerCallback';
+  return ContentService
+    .createTextOutput(cb + '(' + JSON.stringify(shows) + ')')
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}</pre>
+      </div>
+      <div><strong style="color:var(--text)">Step 3 — Deploy as a web app</strong><br>
+        Click <strong>Deploy → New deployment</strong>.<br>
+        Click the gear icon ⚙️ next to "Select type" and choose <strong>Web app</strong>.<br>
+        Set <strong>Execute as: Me</strong>.<br>
+        Set <strong>Who has access: Anyone</strong>.<br>
+        Click <strong>Deploy</strong> → authorize when prompted → click <strong>Deploy</strong> again.
+      </div>
+      <div><strong style="color:var(--text)">Step 4 — Copy the Web App URL</strong><br>
+        After deploying, Google shows a <strong>Web app URL</strong> starting with<br>
+        <code style="background:var(--surface2);padding:1px 6px;border-radius:3px;font-size:.78rem">https://script.google.com/macros/s/…/exec</code><br>
+        Copy that URL. Close this window, open <strong>⚙️ Settings</strong>, paste it into the URL field, and hit Save. Then click <strong>🔄 Sync Sheet</strong>.
+      </div>
+      <div style="background:rgba(234,179,8,.07);border:1px solid rgba(234,179,8,.2);border-radius:8px;padding:10px 13px;font-size:.78rem;color:var(--yellow)">
+        <strong>💡 Updating the script later:</strong> If you change the script, go to Deploy → Manage deployments → edit the existing deployment (don't create a new one) — that keeps the same URL.
+      </div>
+      <div style="background:rgba(96,165,250,.07);border:1px solid rgba(96,165,250,.2);border-radius:8px;padding:10px 13px;font-size:.78rem;color:var(--blue)">
+        <strong>How it works:</strong> The script reads your 2026 tab and returns the data when the app asks for it. Your spreadsheet stays completely private — the script only shares what it reads, and only this app calls it.
+      </div>
+    </div>
+  </div>
+  <div class="mftr"><button class="bsave" onclick="document.getElementById('script-help-overlay').classList.add('hidden')">Got it</button></div>
+</div>
+</div>
+
+<!-- IMPORT MODAL -->
+<div class="overlay hidden" id="import-overlay" onclick="oclick(event,'import-overlay',closeImportModal)">
+<div class="modal">
+  <div class="mhdr"><h2>📥 Import from Google Sheets</h2><button class="xbtn" onclick="closeImportModal()">×</button></div>
+  <div class="mbody">
+    <div style="display:flex;flex-direction:column;gap:9px;">
+      <div style="display:flex;gap:10px;align-items:flex-start">
+        <div style="background:var(--accent);color:#fff;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;flex-shrink:0;margin-top:1px">1</div>
+        <div style="font-size:.85rem;color:var(--muted)">Open your Google Sheet → <strong style="color:var(--text)">File → Download → Comma-separated values (.csv)</strong></div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start">
+        <div style="background:var(--accent);color:#fff;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;flex-shrink:0;margin-top:1px">2</div>
+        <div style="font-size:.85rem;color:var(--muted)">Drop the CSV below. Repeat for each year tab. Duplicates are skipped automatically.</div>
+      </div>
+    </div>
+    <div id="drop-zone" style="border:2px dashed var(--border);border-radius:10px;padding:26px;text-align:center;cursor:pointer;transition:border-color .2s;margin-top:4px" onclick="document.getElementById('csv-input').click()" ondragover="dzOver(event)" ondragleave="dzLeave()" ondrop="dzDrop(event)">
+      <div style="font-size:1.8rem;margin-bottom:7px">📂</div>
+      <p style="font-size:.84rem;color:var(--muted)"><strong style="color:var(--accent)">Click to choose file</strong> or drag &amp; drop .csv here</p>
+    </div>
+    <input type="file" id="csv-input" accept=".csv,text/csv" style="display:none" onchange="handleCsv(this.files[0])">
+    <div id="import-preview" style="display:none;background:var(--surface2);border-radius:8px;padding:11px 13px;font-size:.83rem">
+      <div id="import-summary" style="font-weight:600;margin-bottom:4px"></div>
+      <div id="import-detail" style="color:var(--muted)"></div>
+    </div>
+  </div>
+  <div class="mftr"><button class="bcancel" onclick="closeImportModal()">Cancel</button><button class="bsave" id="btn-import" onclick="doImport()" style="display:none">Import</button></div>
+</div>
+</div>
+
+<script>
+'use strict';
+// ════════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════════
+let shows    = JSON.parse(localStorage.getItem('ct_shows_v2')   || '[]');
+let artists  = JSON.parse(localStorage.getItem('ct_artists')    || '[]');
+let settings = JSON.parse(localStorage.getItem('ct_settings')   || '{}');
+let editId   = null, currentTab = 'upcoming';
+let calYear, calMonth;
+let discoverCache = [];   // last search results
+let pendingImport = [];
+
+const MONTHS  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const SHORT   = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DAYS    = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+// Bay Area cities / regions
+const BAY_AREA = ['san francisco','oakland','berkeley','san jose','santa cruz','palo alto','mountain view','sunnyvale','san mateo','redwood city','fremont','hayward','concord','walnut creek','napa','petaluma','santa rosa','san rafael','mill valley','sausalito','marin','emeryville','alameda','richmond','vallejo'];
+
+function persist()  { localStorage.setItem('ct_shows_v2', JSON.stringify(shows)); }
+function pArtists() { localStorage.setItem('ct_artists',  JSON.stringify(artists)); }
+function pSettings(){ localStorage.setItem('ct_settings', JSON.stringify(settings)); }
+function uid()      { return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function esc(s)     { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function oclick(e,id,fn){ if(e.target===document.getElementById(id)) fn(); }
+function sleep(ms)  { return new Promise(r=>setTimeout(r,ms)); }
+
+// ════════════════════════════════════════════════════════
+//  DATE HELPERS
+// ════════════════════════════════════════════════════════
+function today()     { const d=new Date(); d.setHours(0,0,0,0); return d; }
+function parseDate(s){ if(!s) return null; const p=s.split('-').map(Number); return new Date(p[0],p[1]-1,p[2]); }
+function isPast(s)   { return s.date && parseDate(s.date)<today(); }
+function isCxl(s)    { return !!s.cancelled; }
+function daysTo(s)   { if(!s.date) return 999; return Math.round((parseDate(s.date)-today())/86400000); }
+function fmtT(t)     { if(!t) return ''; const [h,m]=t.split(':').map(Number); return `${h%12||12}:${String(m).padStart(2,'0')} ${h>=12?'PM':'AM'}`; }
+function to24(str)   {
+  if(!str) return '';
+  str=str.trim();
+  const m=str.match(/^(\d{1,2}):(\d{2})(\s*(am|pm))?$/i);
+  if(!m) return '';
+  let h=parseInt(m[1]); const mn=m[2], ap=(m[4]||'').toLowerCase();
+  if(ap==='pm'&&h<12) h+=12; if(ap==='am'&&h===12) h=0;
+  return `${String(h).padStart(2,'0')}:${mn}`;
+}
+
+// ════════════════════════════════════════════════════════
+//  CARD RENDERING
+// ════════════════════════════════════════════════════════
+function tixChip(s){
+  const lbl={y:'✅ Tickets',n:'❌ No tickets',awaiting:'⏳ Awaiting',comp:'🎁 Comp',door:'🚪 At door'};
+  const cls={y:'g',n:'',awaiting:'y',comp:'p',door:''};
+  const icons={'Google Wallet':'📱','Apple Wallet':'🍎','Ticketmaster App':'🎫','AXS App':'🎟','Gmail':'📧','Email':'📧','Etix':'🎫','Will Call':'🏛','At the Door':'🚪','Other':'📌'};
+  let t=s.tixStatus?(lbl[s.tixStatus]||s.tixStatus):'';
+  if(s.tixLoc) t+=(t?' · ':'')+( icons[s.tixLoc]||'🎫')+' '+s.tixLoc;
+  if(s.tixRef) t+=' · '+esc(s.tixRef);
+  if(!t) return '';
+  return `<span class="chip ${cls[s.tixStatus]||''}">${t}</span>`;
+}
+function mkCard(s){
+  const past=isPast(s), cxl=isCxl(s), du=daysTo(s);
+  const soon=!past&&!cxl&&du>=0&&du<=7;
+  const cls=cxl?'cancelled':past?'past':soon?'soon':'';
+  const nd=!s.date;
+  let db=nd?'':(`<div class="dblock"><div class="mo">${SHORT[parseDate(s.date).getMonth()]}</div>`+
+    `<div class="dy">${parseDate(s.date).getDate()}</div>`+
+    `<div class="dw">${DAYS[parseDate(s.date).getDay()]}</div></div>`);
+  let chips='';
+  if(s.doors||s.showTime) chips+=`<span class="chip">${s.doors?'🚪 '+fmtT(s.doors):''}${s.doors&&s.showTime?' / ':''}${s.showTime?'🎵 '+fmtT(s.showTime):''}</span>`;
+  chips+=tixChip(s);
+  if(s.who) chips+=`<span class="chip b">👥 ${esc(s.who)}</span>`;
+  if(soon) chips+=`<span class="chip y">⚡ ${du===0?'Tonight!':du===1?'Tomorrow!':`${du} days away`}</span>`;
+  if(s.notes) chips+=`<span class="chip">📝 ${esc(s.notes.slice(0,55))}${s.notes.length>55?'…':''}</span>`;
+  return `<div class="card ${cls} ${nd?'nodate':''}" id="card-${s.id}">
+    ${db}
+    <div class="info">
+      <div class="artist">${esc(s.artist)}${cxl?'<span class="cbadge">CANCELLED</span>':''}</div>
+      <div class="vline"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>${esc(s.venue)}${s.date?`<span style="color:var(--border)"> · </span><span style="font-size:.72rem">${s.date}</span>`:''}</div>
+      <div class="chips">${chips}</div>
+    </div>
+    <div class="acts">
+      <button class="ib" title="Edit" onclick="openModal('${s.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      <button class="ib del" title="Delete" onclick="delShow('${s.id}')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
+    </div>
+  </div>`;
+}
+function sortArr(a,by){
+  return [...a].sort((x,y)=>{
+    if(by==='date-asc')  return (parseDate(x.date)||new Date(9e15))-(parseDate(y.date)||new Date(9e15));
+    if(by==='date-desc') return (parseDate(y.date)||new Date(0))-(parseDate(x.date)||new Date(0));
+    if(by==='artist')    return (x.artist||'').localeCompare(y.artist||'');
+    if(by==='venue')     return (x.venue||'').localeCompare(y.venue||'');
+    return 0;
+  });
+}
+function filt(a,q){
+  if(!q) return a;
+  const l=q.toLowerCase();
+  return a.filter(s=>(s.artist||'').toLowerCase().includes(l)||(s.venue||'').toLowerCase().includes(l)||(s.who||'').toLowerCase().includes(l)||(s.notes||'').toLowerCase().includes(l));
+}
+
+// ════════════════════════════════════════════════════════
+//  TAB VIEWS
+// ════════════════════════════════════════════════════════
+function switchTab(tab){
+  currentTab=tab;
+  ['upcoming','past','cancelled','following','discover','calendar'].forEach(t=>{
+    document.getElementById('view-'+t).style.display=t===tab?'':'none';
+    document.getElementById('tab-'+t)?.classList.toggle('active',t===tab);
+  });
+  const map={upcoming:renderUpcoming,past:renderPast,cancelled:renderCancelled,following:renderFollowing,discover:renderDiscover,calendar:renderCalendar};
+  map[tab]?.();
+}
+
+function renderUpcoming(){
+  const up=shows.filter(s=>!isPast(s)&&!isCxl(s));
+  const sorted=sortArr(filt(up,document.getElementById('q-up').value),document.getElementById('sort-up').value);
+  document.getElementById('b-upcoming').textContent=up.length;
+  // alerts
+  const near=up.filter(s=>{const d=daysTo(s);return d>=0&&d<=3;}).sort((a,b)=>daysTo(a)-daysTo(b));
+  document.getElementById('alert-strips').innerHTML=near.map(s=>{
+    const du=daysTo(s),lbl=du===0?'Tonight':du===1?'Tomorrow':`In ${du} days`;
+    let ti=s.tixStatus==='y'&&s.tixLoc?` · Tickets in <strong style="color:var(--green)">${esc(s.tixLoc)}</strong>`
+          :(!s.tixStatus||s.tixStatus==='n')?' · <span style="color:var(--yellow)">⚠️ No tickets yet</span>':'';
+    return `<div class="astrip"><div class="ai">🔔</div><div><strong>${esc(s.artist)}</strong> at ${esc(s.venue)}${s.showTime?` <span style="color:var(--muted)">· ${fmtT(s.showTime)}</span>`:''}<span class="dpill">${lbl}</span>${ti}</div></div>`;
+  }).join('');
+  const venues=new Set(up.map(s=>s.venue)).size;
+  const tixd=up.filter(s=>s.tixStatus==='y'||s.tixStatus==='comp').length;
+  document.getElementById('stats-up').innerHTML=`<div class="sc"><div class="n">${up.length}</div><div class="l">Upcoming Shows</div></div><div class="sc"><div class="n">${venues}</div><div class="l">Venues</div></div><div class="sc"><div class="n">${tixd}</div><div class="l">Tickets Secured</div></div>`;
+  document.getElementById('grid-up').innerHTML=sorted.length?sorted.map(mkCard).join(''):`<div class="empty"><div class="ei">🎸</div><h3>No upcoming shows</h3><p>Add one manually or use <strong>Discover</strong> to find shows by artists you follow!</p></div>`;
+}
+
+function renderPast(){
+  const pa=shows.filter(s=>isPast(s)&&!isCxl(s));
+  const sorted=sortArr(filt(pa,document.getElementById('q-pa').value),document.getElementById('sort-pa').value);
+  document.getElementById('b-past').textContent=pa.length;
+  const v=new Set(pa.map(s=>s.venue)).size, ar=new Set(pa.map(s=>s.artist)).size;
+  document.getElementById('stats-pa').innerHTML=`<div class="sc"><div class="n">${pa.length}</div><div class="l">Shows Attended</div></div><div class="sc"><div class="n">${ar}</div><div class="l">Artists Seen</div></div><div class="sc"><div class="n">${v}</div><div class="l">Venues Visited</div></div>`;
+  document.getElementById('grid-pa').innerHTML=sorted.length?sorted.map(mkCard).join(''):`<div class="empty"><div class="ei">🎶</div><h3>No past shows yet</h3><p>Your concert history will appear here.</p></div>`;
+}
+
+function renderCancelled(){
+  const ca=shows.filter(isCxl);
+  document.getElementById('b-cancelled').textContent=ca.length;
+  const filtered=filt(ca,document.getElementById('q-ca').value);
+  document.getElementById('grid-ca').innerHTML=filtered.length?filtered.map(mkCard).join(''):`<div class="empty"><div class="ei">🚫</div><h3>No cancelled shows</h3></div>`;
+}
+
+// ════════════════════════════════════════════════════════
+//  FOLLOWING
+// ════════════════════════════════════════════════════════
+function addArtist(){
+  const inp=document.getElementById('new-artist');
+  const name=inp.value.trim();
+  if(!name) return;
+  if(artists.find(a=>a.name.toLowerCase()===name.toLowerCase())){ inp.value=''; return; }
+  artists.push({id:uid(),name});
+  pArtists();
+  inp.value='';
+  renderFollowing();
+}
+function removeArtist(id){
+  artists=artists.filter(a=>a.id!==id);
+  pArtists();
+  renderFollowing();
+}
+function renderFollowing(){
+  document.getElementById('b-following').textContent=artists.length;
+  const list=document.getElementById('artist-list');
+  if(!artists.length){
+    list.innerHTML=`<div style="color:var(--muted);font-size:.83rem;padding:12px 0">No artists added yet. Type a name above and press Enter or Add.</div>`;
+    return;
+  }
+  list.innerHTML=artists.map(a=>`<div class="artist-pill">
+    <div class="ap-name">${esc(a.name)}</div>
+    <button onclick="removeArtist('${a.id}')" title="Remove">×</button>
+  </div>`).join('');
+}
+
+// ════════════════════════════════════════════════════════
+//  DISCOVER — API CALLS
+// ════════════════════════════════════════════════════════
+function isBayArea(venue){
+  if(!venue) return false;
+  const city=(venue.city||'').toLowerCase();
+  const region=(venue.region||venue.regionCode||venue.stateCode||'').toLowerCase();
+  if(region&&region!=='ca'&&region!=='california') return false;
+  return BAY_AREA.some(b=>city.includes(b));
+}
+
+async function fetchBandsintown(artistName){
+  const appId=settings.biAppId||'concert_tracker_app';
+  const url=`https://rest.bandsintown.com/artists/${encodeURIComponent(artistName)}/events?app_id=${encodeURIComponent(appId)}&date=upcoming`;
+  try{
+    const r=await fetch(url);
+    if(!r.ok) return [];
+    const data=await r.json();
+    if(!Array.isArray(data)) return [];
+    return data
+      .filter(e=>e.venue&&isBayArea(e.venue))
+      .map(e=>({
+        _src:'bandsintown',
+        artist:artistName,
+        date:e.datetime?e.datetime.slice(0,10):'',
+        venue:e.venue.name||'',
+        city:`${e.venue.city||''}${e.venue.region?', '+e.venue.region:''}`,
+        showTime:e.datetime&&e.datetime.length>10?e.datetime.slice(11,16):'',
+        doors:'',
+        ticketUrl:(e.offers&&e.offers[0])?e.offers[0].url:'',
+        lineup:(e.lineup||[artistName]).join(', '),
+      }));
+  }catch(err){ return []; }
+}
+
+async function fetchTicketmaster(artistName){
+  const key=settings.tmKey;
+  if(!key) return [];
+  const params=new URLSearchParams({
+    keyword:artistName,
+    classificationName:'music',
+    latlong:'37.7749,-122.4194',
+    radius:String(settings.radius||50),
+    unit:'miles',
+    sort:'date,asc',
+    size:'10',
+    apikey:key,
+  });
+  try{
+    const r=await fetch(`https://app.ticketmaster.com/discovery/v2/events.json?${params}`);
+    if(!r.ok) return [];
+    const data=await r.json();
+    const events=(data._embedded&&data._embedded.events)||[];
+    return events.map(e=>{
+      const venue=(e._embedded&&e._embedded.venues&&e._embedded.venues[0])||{};
+      const dateInfo=e.dates&&e.dates.start;
+      const url=(e.url)||'';
+      return {
+        _src:'ticketmaster',
+        artist:artistName,
+        date:dateInfo?dateInfo.localDate:'',
+        venue:venue.name||'',
+        city:`${venue.city&&venue.city.name||''}${venue.state&&venue.state.stateCode?', '+venue.state.stateCode:''}`,
+        showTime:dateInfo&&dateInfo.localTime?dateInfo.localTime.slice(0,5):'',
+        doors:'',
+        ticketUrl:url,
+        lineup:e.name||artistName,
+      };
+    });
+  }catch(err){ return []; }
+}
+
+function alreadyAdded(res){
+  return shows.some(s=>
+    s.artist.toLowerCase()===res.artist.toLowerCase()&&
+    s.venue.toLowerCase()===res.venue.toLowerCase()&&
+    s.date===res.date
+  );
+}
+
+async function discoverShows(){
+  if(!artists.length){
+    document.getElementById('discover-results').innerHTML=`<div class="empty"><div class="ei">🎤</div><h3>No artists in your Following list</h3><p>Go to the <strong>Following</strong> tab and add some artists first.</p></div>`;
+    return;
+  }
+  const btn=document.getElementById('search-btn');
+  btn.disabled=true; btn.textContent='Searching…';
+  document.getElementById('progress-area').style.display='';
+  document.getElementById('discover-results').innerHTML='';
+  const fill=document.getElementById('progress-fill');
+  const label=document.getElementById('progress-label');
+  const results=[];
+  for(let i=0;i<artists.length;i++){
+    const a=artists[i];
+    label.textContent=`Searching for ${a.name}… (${i+1}/${artists.length})`;
+    fill.style.width=`${Math.round((i/artists.length)*100)}%`;
+    const [bit,tm]=await Promise.all([fetchBandsintown(a.name),fetchTicketmaster(a.name)]);
+    // merge, dedupe by date+venue
+    const seen=new Set();
+    [...bit,...tm].forEach(r=>{
+      const key=`${r.date}|${r.venue.toLowerCase()}`;
+      if(!seen.has(key)){ seen.add(key); results.push(r); }
+    });
+    await sleep(300);
+  }
+  fill.style.width='100%';
+  label.textContent=`Done! Found ${results.length} Bay Area show${results.length===1?'':'s'}.`;
+  setTimeout(()=>{ document.getElementById('progress-area').style.display='none'; },1800);
+  btn.disabled=false; btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Search All Artists';
+  discoverCache=results;
+  renderDiscoverResults(results);
+}
+
+function renderDiscoverResults(results){
+  if(!results.length){
+    document.getElementById('discover-results').innerHTML=`<div class="empty"><div class="ei">🔍</div><h3>No Bay Area shows found</h3><p>Either your artists don't have upcoming local shows listed yet, or the API didn't find matches. Try adding a Ticketmaster API key in Settings for wider coverage. Truly local/grassroots shows (e.g. small jazz clubs) may need to be added manually.</p></div>`;
+    return;
+  }
+  const sorted=[...results].sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));
+  document.getElementById('discover-results').innerHTML=sorted.map((r,idx)=>{
+    const added=alreadyAdded(r);
+    const d=r.date?parseDate(r.date):null;
+    let db=d?`<div class="dblock"><div class="mo">${SHORT[d.getMonth()]}</div><div class="dy">${d.getDate()}</div><div class="dw">${DAYS[d.getDay()]}</div></div>`:'<div class="dblock" style="font-size:.65rem;color:var(--muted);display:flex;align-items:center;justify-content:center">TBA</div>';
+    const srcCls=r._src==='ticketmaster'?'src-tm':'src-bit';
+    const srcLbl=r._src==='ticketmaster'?'Ticketmaster':'Bandsintown';
+    let chips='';
+    if(r.showTime) chips+=`<span class="chip">🎵 ${fmtT(r.showTime)}</span>`;
+    if(r.city) chips+=`<span class="chip b">📍 ${esc(r.city)}</span>`;
+    if(r.lineup&&r.lineup!==r.artist) chips+=`<span class="chip p">🎤 ${esc(r.lineup.slice(0,60))}</span>`;
+    return `<div class="result-card ${added?'already-added':''}" id="rc-${idx}">
+      <span class="result-source ${srcCls}">${srcLbl}</span>
+      ${db}
+      <div class="info">
+        <div class="artist">${esc(r.artist)}</div>
+        <div class="vline"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>${esc(r.venue)}</div>
+        <div class="chips">${chips}</div>
+      </div>
+      <div class="result-actions">
+        ${added
+          ? '<span class="add-btn added">✓ Added</span>'
+          : `<button class="add-btn" id="addbtn-${idx}" onclick="addFromDiscover(${idx})">+ Add to My Shows</button>`}
+        ${r.ticketUrl?`<a class="buy-link" href="${esc(r.ticketUrl)}" target="_blank" rel="noopener">🎫 Buy Tickets ↗</a>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderDiscover(){
+  // Show API status notice
+  const hasBit=settings.biAppId;
+  const hasTm=settings.tmKey;
+  let notice='';
+  if(!hasBit&&!hasTm){
+    notice=`<div class="api-notice">
+      <strong>💡 Tip:</strong> For best results, go to <strong>Settings</strong> and enter a Bandsintown App ID (free, any name works) and/or a free <a href="https://developer.ticketmaster.com" target="_blank">Ticketmaster API key</a>. Bandsintown has excellent coverage for jazz &amp; indie acts.
+    </div>`;
+  } else if(!hasTm){
+    notice=`<div class="api-notice"><strong>💡 Tip:</strong> Add a free <a href="https://developer.ticketmaster.com" target="_blank">Ticketmaster API key</a> in Settings for expanded venue coverage.</div>`;
+  }
+  document.getElementById('api-notice-area').innerHTML=notice;
+  if(discoverCache.length) renderDiscoverResults(discoverCache);
+  else if(!artists.length){
+    document.getElementById('discover-results').innerHTML=`<div class="empty"><div class="ei">🎤</div><h3>Add artists to your Following list first</h3><p>Go to the <strong>Following</strong> tab, add artists you love, then come back and hit Search.</p></div>`;
+  } else {
+    document.getElementById('discover-results').innerHTML=`<div class="empty"><div class="ei">🔍</div><h3>Ready to search</h3><p>You have <strong>${artists.length}</strong> artist${artists.length===1?'':'s'} in your list. Hit <strong>Search All Artists</strong> to find Bay Area shows.</p></div>`;
+  }
+}
+
+function addFromDiscover(idx){
+  const r=discoverCache[idx];
+  if(!r) return;
+  const s={
+    id:uid(), artist:r.artist, date:r.date, venue:r.venue,
+    doors:'', showTime:r.showTime||'',
+    tixStatus:'', tixLoc:'', tixRef:r.ticketUrl||'',
+    who:'', notes:r.lineup&&r.lineup!==r.artist?'Lineup: '+r.lineup:'',
+    cancelled:false,
+  };
+  shows.push(s); persist();
+  // Update button
+  const btn=document.getElementById('addbtn-'+idx);
+  if(btn){ btn.textContent='✓ Added'; btn.classList.add('added'); btn.onclick=null; }
+  const card=document.getElementById('rc-'+idx);
+  if(card) card.classList.add('already-added');
+}
+
+// ════════════════════════════════════════════════════════
+//  CALENDAR
+// ════════════════════════════════════════════════════════
+function renderCalendar(){
+  document.getElementById('cal-label').textContent=`${MONTHS[calMonth]} ${calYear}`;
+  const fd=new Date(calYear,calMonth,1).getDay();
+  const dim=new Date(calYear,calMonth+1,0).getDate();
+  const dipm=new Date(calYear,calMonth,0).getDate();
+  const td=today();
+  const byDate={};
+  shows.forEach(s=>{ if(s.date){if(!byDate[s.date])byDate[s.date]=[]; byDate[s.date].push(s);} });
+  let html=DAYS.map(d=>`<div class="cdh">${d}</div>`).join('');
+  let cells=0;
+  for(let i=fd-1;i>=0;i--){ html+=`<div class="cc other"><div class="ccn">${dipm-i}</div></div>`; cells++; }
+  for(let d=1;d<=dim;d++){
+    const ds=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday=new Date(calYear,calMonth,d).getTime()===td.getTime();
+    const ds2=byDate[ds]||[];
+    html+=`<div class="cc ${isToday?'today':''} ${ds2.length?'hasshow':''}"><div class="ccn">${d}</div>${ds2.map(s=>`<div class="ccev ${isCxl(s)?'ca':isPast(s)?'pa':'up'}" title="${esc(s.artist)} @ ${esc(s.venue)}">${esc(s.artist)}</div>`).join('')}</div>`;
+    cells++;
+  }
+  const rem=(7-(cells%7))%7;
+  for(let d=1;d<=rem;d++) html+=`<div class="cc other"><div class="ccn">${d}</div></div>`;
+  document.getElementById('cal-grid').innerHTML=html;
+}
+function calPrev(){ calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCalendar(); }
+function calNext(){ calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCalendar(); }
+function calToday(){ const n=new Date(); calYear=n.getFullYear(); calMonth=n.getMonth(); renderCalendar(); }
+
+// ════════════════════════════════════════════════════════
+//  ADD/EDIT MODAL
+// ════════════════════════════════════════════════════════
+function openModal(id){
+  editId=id||null;
+  document.getElementById('modal-title').textContent=id?'Edit Show':'Add Show';
+  document.getElementById('modal-overlay').classList.remove('hidden');
+  ['f-artist','f-date','f-venue','f-doors','f-show','f-tixref','f-who','f-notes'].forEach(i=>document.getElementById(i).value='');
+  ['f-tix','f-tixloc'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('f-cancelled').checked=false;
+  if(id){
+    const s=shows.find(x=>x.id===id);
+    if(s){
+      document.getElementById('f-artist').value=s.artist||'';
+      document.getElementById('f-date').value=s.date||'';
+      document.getElementById('f-venue').value=s.venue||'';
+      document.getElementById('f-doors').value=s.doors||'';
+      document.getElementById('f-show').value=s.showTime||'';
+      document.getElementById('f-tix').value=s.tixStatus||'';
+      document.getElementById('f-tixloc').value=s.tixLoc||'';
+      document.getElementById('f-tixref').value=s.tixRef||'';
+      document.getElementById('f-who').value=s.who||'';
+      document.getElementById('f-notes').value=s.notes||'';
+      document.getElementById('f-cancelled').checked=!!s.cancelled;
+    }
+  }
+  setTimeout(()=>document.getElementById('f-artist').focus(),60);
+}
+function closeModal(){ document.getElementById('modal-overlay').classList.add('hidden'); editId=null; }
+function saveShow(){
+  const artist=document.getElementById('f-artist').value.trim();
+  if(!artist){ alert('Please enter the Artist/Band name.'); return; }
+  const s={id:editId||uid(),artist,date:document.getElementById('f-date').value,venue:document.getElementById('f-venue').value.trim(),doors:document.getElementById('f-doors').value,showTime:document.getElementById('f-show').value,tixStatus:document.getElementById('f-tix').value,tixLoc:document.getElementById('f-tixloc').value,tixRef:document.getElementById('f-tixref').value.trim(),who:document.getElementById('f-who').value.trim(),notes:document.getElementById('f-notes').value.trim(),cancelled:document.getElementById('f-cancelled').checked};
+  if(editId) shows=shows.map(x=>x.id===editId?s:x); else shows.push(s);
+  persist(); closeModal(); renderAll();
+}
+function delShow(id){
+  const s=shows.find(x=>x.id===id);
+  if(!s||!confirm(`Delete "${s.artist}"?`)) return;
+  shows=shows.filter(x=>x.id!==id); persist(); renderAll();
+}
+
+// ════════════════════════════════════════════════════════
+//  SETTINGS MODAL
+// ════════════════════════════════════════════════════════
+function openSettingsModal(){
+  document.getElementById('s-sheets-url').value=settings.sheetsUrl||'';
+  document.getElementById('s-autosync').checked=!!settings.autoSync;
+  document.getElementById('s-bit').value=settings.biAppId||'';
+  document.getElementById('s-tm').value=settings.tmKey||'';
+  document.getElementById('s-radius').value=String(settings.radius||50);
+  document.getElementById('s-city').value=settings.city||'San Francisco, CA';
+  // Show share button only when hosted (not file://) and a sync URL is configured
+  const shareBtn=document.getElementById('share-link-btn');
+  if(shareBtn) shareBtn.style.display=(settings.sheetsUrl&&window.location.protocol!=='file:')? '':'none';
+  document.getElementById('settings-overlay').classList.remove('hidden');
+}
+
+function copyShareLink(){
+  const base=window.location.origin+window.location.pathname;
+  const url=base+'?src='+encodeURIComponent(settings.sheetsUrl);
+  navigator.clipboard.writeText(url).then(()=>{
+    const btn=document.getElementById('share-link-btn');
+    const orig=btn.textContent;
+    btn.textContent='✅ Link copied!';
+    setTimeout(()=>{ btn.textContent=orig; },2500);
+  }).catch(()=>{ prompt('Copy this link and send to friends:',url); });
+}
+function closeSettingsModal(){ document.getElementById('settings-overlay').classList.add('hidden'); }
+function saveSettings(){
+  settings.sheetsUrl=document.getElementById('s-sheets-url').value.trim();
+  settings.autoSync=document.getElementById('s-autosync').checked;
+  settings.biAppId=document.getElementById('s-bit').value.trim()||'concert_tracker_app';
+  settings.tmKey=document.getElementById('s-tm').value.trim();
+  settings.radius=parseInt(document.getElementById('s-radius').value)||50;
+  settings.city=document.getElementById('s-city').value.trim();
+  pSettings();
+  updateSyncUI();
+  closeSettingsModal();
+  alert('Settings saved!');
+}
+
+// ════════════════════════════════════════════════════════
+//  GOOGLE SHEETS SYNC
+// ════════════════════════════════════════════════════════
+function updateSyncUI(){
+  const wrap=document.getElementById('sync-status-wrap');
+  wrap.style.display=settings.sheetsUrl?'flex':'none';
+  const lbl=document.getElementById('sync-status-label');
+  if(settings.lastSync){
+    const d=new Date(settings.lastSync);
+    lbl.textContent='Last synced '+d.toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+  } else { lbl.textContent='Never synced'; }
+}
+
+const SYNC_ICON='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 013.51 15"/></svg>';
+const SPIN_ICON='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 013.51 15"/></svg>';
+
+async function syncFromSheets(){
+  const rawUrl=settings.sheetsUrl;
+  if(!rawUrl){ openSettingsModal(); return; }
+  const btn=document.getElementById('sync-btn');
+  btn.disabled=true; btn.innerHTML=SPIN_ICON+' Syncing…';
+
+  try{
+    let parsed;
+    if(rawUrl.includes('script.google.com')){
+      // Apps Script JSONP — works from file:// and https:// alike
+      parsed = await syncViaAppsScript(rawUrl);
+    } else if(window.location.protocol==='file:'){
+      // Fallback: Google Visualization JSONP (requires sheet published to web)
+      parsed = await syncViaGviz(rawUrl);
+    } else {
+      // Hosted on https:// — use CORS proxy with CSV fetch
+      const proxyUrl='https://corsproxy.io/?'+encodeURIComponent(rawUrl);
+      const resp=await fetch(proxyUrl);
+      if(!resp.ok) throw new Error('HTTP '+resp.status);
+      const csvText=await resp.text();
+      if(!csvText||csvText.trim().length<5) throw new Error('Empty response');
+      parsed=parseCsvToShows(csvText);
+    }
+
+    if(!parsed.length) throw new Error('No shows found in sheet. Check that the tab is published and has data rows.');
+
+    let added=0, updated=0;
+    parsed.forEach(s=>{
+      const ex=shows.find(x=>x.artist.toLowerCase()===s.artist.toLowerCase()&&x.venue.toLowerCase()===s.venue.toLowerCase()&&x.date===s.date);
+      if(ex){
+        if(s.tixStatus) ex.tixStatus=s.tixStatus;
+        if(s.tixLoc)    ex.tixLoc=s.tixLoc;
+        if(s.who)       ex.who=s.who;
+        if(s.notes)     ex.notes=s.notes;
+        if(s.doors)     ex.doors=s.doors;
+        if(s.showTime)  ex.showTime=s.showTime;
+        updated++;
+      } else { shows.push(s); added++; }
+    });
+    persist(); settings.lastSync=new Date().toISOString(); pSettings(); renderAll(); updateSyncUI();
+    btn.innerHTML='✓ Synced!';
+    document.getElementById('sync-status-label').textContent=`Synced: +${added} new, ${updated} updated`;
+    setTimeout(()=>{ btn.disabled=false; btn.innerHTML=SYNC_ICON+' Sync Sheet'; updateSyncUI(); },3000);
+  }catch(err){
+    btn.disabled=false; btn.innerHTML='⚠️ Sync failed';
+    setTimeout(()=>{ btn.innerHTML=SYNC_ICON+' Sync Sheet'; },3000);
+    let msg='Sync failed: '+err.message;
+    if(err.message.includes('not published')||err.message.includes('accessible')){
+      msg+='\n\nMake sure you published the specific tab (not "Entire Document") as CSV in File → Share → Publish to web.';
+    }
+    alert(msg);
+  }
+}
+
+// ── Google Visualization JSONP sync (works from file:// pages) ──────
+async function syncViaGviz(csvUrl){
+  // Extract spreadsheet ID and GID from the published CSV URL
+  const idM=csvUrl.match(/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+  if(!idM) throw new Error('Could not find spreadsheet ID in URL. Make sure you pasted the full URL from Google Sheets.');
+  const ssId=idM[1];
+  const gidM=csvUrl.match(/[?&]gid=(\d+)/);
+  const gid=gidM?gidM[1]:null;
+
+  const table=await fetchGvizTable(ssId,gid);
+  return gvizToShows(table);
+}
+
+function fetchGvizTable(ssId, gid){
+  return new Promise((resolve,reject)=>{
+    let timeoutId;
+    // Google Visualization API calls this specific global when the script loads
+    const prev=(window.google&&window.google.visualization&&window.google.visualization.Query&&window.google.visualization.Query.setResponse)||null;
+    window.google=window.google||{};
+    window.google.visualization=window.google.visualization||{};
+    window.google.visualization.Query=window.google.visualization.Query||{};
+
+    window.google.visualization.Query.setResponse=function(resp){
+      clearTimeout(timeoutId);
+      window.google.visualization.Query.setResponse=prev;
+      if(script&&script.parentNode) script.parentNode.removeChild(script);
+      if(resp.status==='error'){
+        const detail=(resp.errors&&resp.errors[0]&&resp.errors[0].detailed_message)||'Sheet not accessible. Make sure the tab is published to the web.';
+        reject(new Error(detail)); return;
+      }
+      resolve(resp.table);
+    };
+
+    const gidParam=gid?`&gid=${gid}`:'';
+    const url=`https://docs.google.com/spreadsheets/d/${ssId}/gviz/tq?tqx=out:json${gidParam}`;
+    const script=document.createElement('script');
+    script.onerror=()=>{ clearTimeout(timeoutId); window.google.visualization.Query.setResponse=prev; reject(new Error('Failed to load sheet data. Check the URL and make sure the tab is published.')); };
+    script.src=url;
+    document.head.appendChild(script);
+    timeoutId=setTimeout(()=>{ if(script.parentNode) script.parentNode.removeChild(script); reject(new Error('Request timed out.')); },12000);
+  });
+}
+
+// ── Google Apps Script JSONP sync (most reliable, works from file://) ──
+async function syncViaAppsScript(url){
+  return new Promise((resolve,reject)=>{
+    const cbName='ct_cb_'+Date.now();
+    let timeoutId;
+    window[cbName]=function(data){
+      clearTimeout(timeoutId);
+      if(script&&script.parentNode) script.parentNode.removeChild(script);
+      delete window[cbName];
+      try{ resolve(appsScriptToShows(data)); }
+      catch(e){ reject(e); }
+    };
+    const script=document.createElement('script');
+    script.onerror=()=>{
+      clearTimeout(timeoutId); delete window[cbName];
+      reject(new Error('Could not reach your Apps Script. Make sure you deployed it with "Anyone" access and the URL is correct.'));
+    };
+    const sep=url.includes('?')?'&':'?';
+    script.src=url+sep+'callback='+cbName;
+    document.head.appendChild(script);
+    timeoutId=setTimeout(()=>{
+      if(script.parentNode) script.parentNode.removeChild(script);
+      delete window[cbName];
+      reject(new Error('Request timed out. Check your Apps Script deployment.'));
+    },15000);
+  });
+}
+
+function appsScriptToShows(rows){
+  if(!Array.isArray(rows)||!rows.length) return [];
+  return rows.map(row=>{
+    const artist=row['Band/Artist']||row['Artist']||row['Band']||'';
+    const venue=row['Venue']||'';
+    if(!artist) return null;
+
+    // Parse date — Apps Script getDisplayValues() returns "M/D/YYYY"
+    let dateStr='';
+    const dv=String(row['Date']||'').trim();
+    if(/^\d{4}-\d{2}-\d{2}$/.test(dv)) dateStr=dv;
+    else{ const m=dv.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); if(m) dateStr=`${m[3]}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}`; }
+
+    // Doors / show time
+    let doors='',showTime='';
+    const ds=String(row['Doors/Showtime']||row['Showtime']||'').trim();
+    if(ds){ const sl=ds.split('/'); if(sl.length>=2){doors=to24(sl[0].trim());showTime=to24(sl[1].trim());}else showTime=to24(ds); }
+
+    // Ticket status
+    const tv=String(row['Tickets (y/n)']||row['Tickets']||'').trim().toLowerCase();
+    let tixStatus='';
+    if(tv==='y'||tv==='yes'||tv.startsWith('y ')) tixStatus='y';
+    else if(tv==='n'||tv==='no') tixStatus='n';
+    else if(tv.includes('await')) tixStatus='awaiting';
+    else if(tv.includes('comp')||tv.includes('guest')) tixStatus='comp';
+    else if(tv.includes('door')||tv.includes('no need')||tv.includes('free')) tixStatus='door';
+    else if(tv) tixStatus='y';
+
+    // Ticket location
+    const tl=String(row['Tix Location']||row['Ticket Location']||'').trim().toLowerCase();
+    let tixLoc='';
+    if(tl.includes('gmail')) tixLoc='Gmail';
+    else if(tl.includes('apple wallet')) tixLoc='Apple Wallet';
+    else if(tl.includes('google wallet')) tixLoc='Google Wallet';
+    else if(tl.includes('ticketmaster')) tixLoc='Ticketmaster App';
+    else if(tl.includes('axs')) tixLoc='AXS App';
+    else if(tl.includes('tixr')) tixLoc='Tixr';
+    else if(tl.includes('etix')) tixLoc='Etix';
+    else if(tl.includes('will call')) tixLoc='Will Call';
+    else if(tl.includes('door')) tixLoc='At the Door';
+    else if(tl.includes('email')||tl.includes('mail')) tixLoc='Email';
+    else if(tl) tixLoc='Other';
+
+    return {id:uid(),artist,venue,date:dateStr,doors,showTime,tixStatus,tixLoc,tixRef:'',
+      who:String(row["Who's going"]||row['Who']||'').trim(),
+      notes:String(row['Notes']||'').trim(),cancelled:false};
+  }).filter(Boolean);
+}
+
+function gvizToShows(table){
+  if(!table||!table.cols||!table.rows) return [];
+  const cols=table.cols.map(c=>(c.label||c.id||'').trim().toLowerCase());
+
+  // Column index helpers
+  const cA=cols.findIndex(c=>c.includes('band')||c.includes('artist'));
+  const cV=cols.findIndex(c=>c.includes('venue'));
+  const cDS=cols.findIndex(c=>c.includes('door')||c.includes('show'));
+  // Ticket status: contains ticket/tix but NOT 'location'
+  const cT=cols.findIndex(c=>(c.includes('ticket')||c.includes('tix'))&&!c.includes('location'));
+  const cW=cols.findIndex(c=>c.includes("who"));
+  const cTL=cols.findIndex(c=>c.includes('location')&&(c.includes('tix')||c.includes('ticket')));
+  const cN=cols.findIndex(c=>c.includes('note'));
+  const cDate=cols.findIndex(c=>c==='date'||c==='date ');
+
+  if(cA===-1) return [];
+
+  function getCell(row,i){
+    if(i<0||!row.c||!row.c[i]) return '';
+    const cell=row.c[i];
+    if(cell.f) return cell.f.trim(); // formatted value (dates, etc.)
+    if(cell.v===null||cell.v===undefined) return '';
+    // gviz dates come as "Date(2026,4,15)" → 2026-05-15 (month is 0-indexed)
+    const dm=String(cell.v).match(/^Date\((\d+),(\d+),(\d+)\)$/);
+    if(dm) return `${dm[1]}-${String(parseInt(dm[2])+1).padStart(2,'0')}-${String(dm[3]).padStart(2,'0')}`;
+    return String(cell.v).trim();
+  }
+
+  const result=[];
+  for(const row of table.rows){
+    const artist=getCell(row,cA), venue=getCell(row,cV);
+    if(!artist) continue;
+
+    let doors='',showTime='';
+    if(cDS>=0){
+      const ds=getCell(row,cDS);
+      const sl=ds.split('/');
+      if(sl.length>=2){doors=to24(sl[0].trim());showTime=to24(sl[1].trim());}
+      else if(ds) showTime=to24(ds);
+    }
+
+    const tv=getCell(row,cT).toLowerCase();
+    let tixStatus='';
+    if(tv==='y'||tv==='yes'||tv.startsWith('y ')) tixStatus='y';
+    else if(tv==='n'||tv==='no') tixStatus='n';
+    else if(tv.includes('await')) tixStatus='awaiting';
+    else if(tv.includes('comp')||tv.includes('guest')) tixStatus='comp';
+    else if(tv.includes('door')||tv.includes('no need')||tv.includes('free')) tixStatus='door';
+    else if(tv) tixStatus='y';
+
+    const tl=getCell(row,cTL).toLowerCase();
+    let tixLoc='';
+    if(tl.includes('gmail')) tixLoc='Gmail';
+    else if(tl.includes('apple wallet')) tixLoc='Apple Wallet';
+    else if(tl.includes('google wallet')) tixLoc='Google Wallet';
+    else if(tl.includes('ticketmaster')) tixLoc='Ticketmaster App';
+    else if(tl.includes('axs')) tixLoc='AXS App';
+    else if(tl.includes('tixr')) tixLoc='Tixr';
+    else if(tl.includes('etix')) tixLoc='Etix';
+    else if(tl.includes('will call')) tixLoc='Will Call';
+    else if(tl.includes('door')) tixLoc='At the Door';
+    else if(tl.includes('email')||tl.includes('mail')) tixLoc='Email';
+    else if(tl) tixLoc='Other';
+
+    let dateStr='';
+    const dv=getCell(row,cDate);
+    if(dv){
+      if(/^\d{4}-\d{2}-\d{2}$/.test(dv)) dateStr=dv;
+      else{const m=dv.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(m)dateStr=`${m[3]}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}`;}
+    }
+
+    result.push({id:uid(),artist,venue,date:dateStr,doors,showTime,tixStatus,tixLoc,tixRef:'',
+      who:getCell(row,cW),notes:getCell(row,cN),cancelled:false});
+  }
+  return result;
+}
+
+// Core CSV→shows parser — used by both manual import and auto-sync
+function parseCsvToShows(text){
+  const lines=text.split(/\r?\n/).filter(l=>l.trim());
+  if(lines.length<2) return [];
+  const hdr=csvSplit(lines[0]).map(h=>h.trim().toLowerCase());
+  const iA=ci(hdr,['band','artist']),iV=ci(hdr,['venue']),iDS=ci(hdr,['door','show']),
+        iT=ci(hdr,['ticket','tix']),iW=ci(hdr,["who's","who going","whos"]),
+        iTL=ci(hdr,['tix location','ticket location']),iN=ci(hdr,['notes']),iDate=ci(hdr,['date']);
+  if(iA===-1) return [];
+  const result=[];
+  for(let i=1;i<lines.length;i++){
+    const cols=csvSplit(lines[i]);
+    const artist=(cols[iA]||'').trim();
+    const venue=iV>=0?(cols[iV]||'').trim():'';
+    if(!artist) continue;
+    let doors='',showTime='';
+    if(iDS>=0){
+      const ds=(cols[iDS]||'').trim();
+      const sl=ds.split('/');
+      if(sl.length>=2){doors=to24(sl[0].trim());showTime=to24(sl[1].trim());}
+      else if(ds) showTime=to24(ds);
+    }
+    let tixStatus='';
+    if(iT>=0){
+      const tv=(cols[iT]||'').trim().toLowerCase();
+      if(tv==='y'||tv==='yes'||tv.startsWith('y ')) tixStatus='y';
+      else if(tv==='n'||tv==='no') tixStatus='n';
+      else if(tv.includes('await')) tixStatus='awaiting';
+      else if(tv.includes('comp')||tv.includes('guest')) tixStatus='comp';
+      else if(tv.includes('door')||tv.includes('no need')||tv.includes('free')) tixStatus='door';
+      else if(tv) tixStatus='y';
+    }
+    let tixLoc='';
+    if(iTL>=0){
+      const tl=(cols[iTL]||'').trim().toLowerCase();
+      if(tl.includes('gmail')) tixLoc='Gmail';
+      else if(tl.includes('apple wallet')) tixLoc='Apple Wallet';
+      else if(tl.includes('google wallet')) tixLoc='Google Wallet';
+      else if(tl.includes('ticketmaster')) tixLoc='Ticketmaster App';
+      else if(tl.includes('axs')) tixLoc='AXS App';
+      else if(tl.includes('tixr')) tixLoc='Tixr';
+      else if(tl.includes('etix')) tixLoc='Etix';
+      else if(tl.includes('will call')) tixLoc='Will Call';
+      else if(tl.includes('door')) tixLoc='At the Door';
+      else if(tl.includes('email')||tl.includes('mail')) tixLoc='Email';
+      else if(tl) tixLoc='Other';
+    }
+    let dateStr='';
+    if(iDate>=0){
+      const dv=(cols[iDate]||'').trim();
+      if(/^\d{4}-\d{2}-\d{2}$/.test(dv)) dateStr=dv;
+      else{const m=dv.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(m)dateStr=`${m[3]}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}`;}
+    }
+    result.push({id:uid(),artist,venue,date:dateStr,doors,showTime,tixStatus,tixLoc,tixRef:'',
+      who:iW>=0?(cols[iW]||'').trim():'',notes:iN>=0?(cols[iN]||'').trim():'',cancelled:false});
+  }
+  return result;
+}
+
+function showScriptHelp(){
+  closeSettingsModal();
+  document.getElementById('script-help-overlay').classList.remove('hidden');
+}
+function exportData(){
+  const blob=new Blob([JSON.stringify({shows,artists,settings},null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='concert-tracker-backup.json'; a.click();
+}
+function clearAllData(){
+  if(!confirm('Delete ALL shows? This cannot be undone.')) return;
+  shows=[]; persist(); renderAll(); closeSettingsModal();
+}
+
+// ════════════════════════════════════════════════════════
+//  CSV IMPORT
+// ════════════════════════════════════════════════════════
+function openImportModal(){ pendingImport=[]; document.getElementById('import-preview').style.display='none'; document.getElementById('btn-import').style.display='none'; document.getElementById('import-overlay').classList.remove('hidden'); }
+function closeImportModal(){ document.getElementById('import-overlay').classList.add('hidden'); }
+function dzOver(e){ e.preventDefault(); document.getElementById('drop-zone').style.borderColor='var(--accent)'; }
+function dzLeave(){ document.getElementById('drop-zone').style.borderColor='var(--border)'; }
+function dzDrop(e){ e.preventDefault(); dzLeave(); const f=e.dataTransfer.files[0]; if(f) handleCsv(f); }
+function handleCsv(file){ const r=new FileReader(); r.onload=e=>parseCsv(e.target.result); r.readAsText(file); }
+
+function csvSplit(line){
+  const out=[]; let cur='',inq=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(c==='"'){ if(inq&&line[i+1]==='"'){cur+='"';i++;} else inq=!inq; }
+    else if(c===','&&!inq){out.push(cur);cur='';}
+    else cur+=c;
+  }
+  out.push(cur); return out;
+}
+function ci(hdr,kws){ return hdr.findIndex(h=>kws.some(k=>h.includes(k))); }
+function parseCsv(text){
+  const parsed=parseCsvToShows(text);
+  if(!parsed.length){ showImportErr('Could not parse any shows. Make sure the first row has column headers including "Band/Artist".'); return; }
+  pendingImport=parsed;
+  document.getElementById('import-preview').style.display='';
+  document.getElementById('import-summary').style.color='var(--green)';
+  document.getElementById('import-summary').textContent=`✅ Ready to import ${parsed.length} shows`;
+  document.getElementById('import-detail').textContent='Preview: '+parsed.slice(0,4).map(s=>`${s.artist} @ ${s.venue}`).join(', ')+(parsed.length>4?` … +${parsed.length-4} more`:'');
+  document.getElementById('btn-import').style.display='';
+}
+function showImportErr(msg){ document.getElementById('import-preview').style.display=''; document.getElementById('import-summary').style.color='var(--red)'; document.getElementById('import-summary').textContent='⚠️ '+msg; document.getElementById('import-detail').textContent=''; document.getElementById('btn-import').style.display='none'; }
+function doImport(){
+  let added=0,dupes=0;
+  pendingImport.forEach(s=>{
+    if(shows.some(x=>x.artist===s.artist&&x.venue===s.venue&&x.date===s.date)) dupes++;
+    else{shows.push(s);added++;}
+  });
+  persist(); closeImportModal(); renderAll();
+  alert(`Imported ${added} shows!${dupes?` (${dupes} duplicates skipped)`:''} 🎉`);
+}
+
+// ════════════════════════════════════════════════════════
+//  RENDER ALL + INIT
+// ════════════════════════════════════════════════════════
+function renderAll(){
+  renderUpcoming(); renderPast(); renderCancelled();
+  if(currentTab==='calendar') renderCalendar();
+  if(currentTab==='following') renderFollowing();
+  if(currentTab==='discover') renderDiscover();
+}
+
+// Init
+const _n=new Date(); calYear=_n.getFullYear(); calMonth=_n.getMonth();
+if(!settings.biAppId) settings.biAppId='concert_tracker_app';
+
+// Auto-configure from share link: ?src=<appsScriptUrl>
+(function(){
+  try{
+    const src=new URLSearchParams(window.location.search).get('src');
+    if(src&&src.startsWith('https://')&&!settings.sheetsUrl){
+      settings.sheetsUrl=src;
+      settings.autoSync=true;
+      pSettings();
+      // Clean the URL bar without reloading
+      history.replaceState({},'',window.location.pathname);
+    }
+  }catch(e){}
+})();
+
+// Seed demo show if brand new
+if(shows.length===0){
+  const d=new Date(); d.setDate(d.getDate()+5);
+  const ds=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  shows.push({id:uid(),artist:'Example: G Deloian Band',date:ds,venue:"The Independent",doors:'19:30',showTime:'20:00',tixStatus:'y',tixLoc:'Gmail',tixRef:'',who:'JB, N',notes:'Import your Google Sheet CSV to load your real data, or add shows manually!',cancelled:false});
+  persist();
+}
+if(artists.length===0){
+  ['G Deloian Band','Alfredo Rodriguez','Danny\'s Live Dead','Larry Ochs REOTREO','Parlor Greens'].forEach(name=>artists.push({id:uid(),name}));
+  pArtists();
+}
+
+renderUpcoming();
+renderFollowing();
+updateSyncUI();
+
+// Auto-sync on load + every 30 min if enabled
+if(settings.sheetsUrl && settings.autoSync){
+  setTimeout(syncFromSheets, 800);
+  setInterval(syncFromSheets, 30 * 60 * 1000);
+}
+</script>
+</body>
+</html>

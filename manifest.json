@@ -1,0 +1,13 @@
+{
+  "name": "Concert Tracker",
+  "short_name": "Concerts",
+  "description": "SF Bay Area live music shows",
+  "start_url": "./concert-tracker.html",
+  "display": "standalone",
+  "background_color": "#0f0f13",
+  "theme_color": "#a855f7",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
