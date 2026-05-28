@@ -1100,9 +1100,9 @@ function updateSyncUI(){
 const SYNC_ICON='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 013.51 15"/></svg>';
 const SPIN_ICON='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 013.51 15"/></svg>';
 
-async function syncFromSheets(){
+async function syncFromSheets(silent=false){
   const rawUrl=settings.sheetsUrl;
-  if(!rawUrl){ openSettingsModal(); return; }
+  if(!rawUrl){ if(!silent) openSettingsModal(); return; }
   const btn=document.getElementById('sync-btn');
   btn.disabled=true; btn.innerHTML=SPIN_ICON+' Syncing…';
 
@@ -1146,11 +1146,13 @@ async function syncFromSheets(){
   }catch(err){
     btn.disabled=false; btn.innerHTML='⚠️ Sync failed';
     setTimeout(()=>{ btn.innerHTML=SYNC_ICON+' Sync Sheet'; },3000);
-    let msg='Sync failed: '+err.message;
-    if(err.message.includes('not published')||err.message.includes('accessible')){
-      msg+='\n\nMake sure you published the specific tab (not "Entire Document") as CSV in File → Share → Publish to web.';
+    if(!silent){
+      let msg='Sync failed: '+err.message;
+      if(err.message.includes('not published')||err.message.includes('accessible')){
+        msg+='\n\nMake sure you published the specific tab (not "Entire Document") as CSV in File → Share → Publish to web.';
+      }
+      alert(msg);
     }
-    alert(msg);
   }
 }
 
@@ -1197,8 +1199,26 @@ function fetchGvizTable(ssId, gid){
   });
 }
 
-// ── Google Apps Script JSONP sync (most reliable, works from file://) ──
+// ── Google Apps Script sync ──
+// Uses fetch() from https:// (reliable on iOS Safari)
+// Uses JSONP script-tag from file:// (bypasses local CORS restrictions)
 async function syncViaAppsScript(url){
+  if(window.location.protocol!=='file:'){
+    // HTTPS path: fetch via CORS proxy so iOS Safari doesn't block it
+    try{
+      const proxyUrl='https://corsproxy.io/?'+encodeURIComponent(url);
+      const resp=await fetch(proxyUrl);
+      if(!resp.ok) throw new Error('HTTP '+resp.status);
+      const text=await resp.text();
+      // Strip JSONP wrapper if present: "callback([...])" → "[...]"
+      const m=text.match(/^[^(]+\((.+)\)$/s);
+      const data=JSON.parse(m?m[1]:text);
+      return appsScriptToShows(data);
+    }catch(err){
+      throw new Error('Could not reach your Apps Script. Make sure you deployed it with "Anyone" access and the URL is correct.');
+    }
+  }
+  // file:// path: use JSONP script tag (fetch blocked by browser on file://)
   return new Promise((resolve,reject)=>{
     const cbName='ct_cb_'+Date.now();
     let timeoutId;
@@ -1512,7 +1532,7 @@ updateSyncUI();
 // Auto-sync on load + every 30 min if enabled
 if(settings.sheetsUrl && settings.autoSync){
   setTimeout(syncFromSheets, 800);
-  setInterval(syncFromSheets, 30 * 60 * 1000);
+  setInterval(()=>syncFromSheets(true), 30 * 60 * 1000);
 }
 </script>
 </body>
