@@ -51,8 +51,8 @@ header .sp{flex:1;}
 main{padding:18px 22px;max-width:1280px;margin:0 auto;}
 
 /* ── STATS ── */
-.stats{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
-.sc{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;min-width:120px;}
+.stats{display:flex;gap:10px;margin-bottom:16px;flex-wrap:nowrap;}
+.sc{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;flex:1;min-width:0;}
 .sc .n{font-size:1.7rem;font-weight:800;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;}
 .sc .l{font-size:.7rem;color:var(--muted);margin-top:3px;}
 
@@ -200,6 +200,7 @@ main{padding:18px 22px;max-width:1280px;margin:0 auto;}
 .section-label{font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
 
 /* ── LIST VIEW ── */
+.viewbar{display:flex;justify-content:flex-end;margin-bottom:3px;}
 .view-toggle{background:var(--surface);border:1px solid var(--border);color:var(--muted);padding:8px 11px;border-radius:8px;cursor:pointer;font-size:.82rem;display:flex;align-items:center;gap:5px;transition:all .2s;white-space:nowrap;flex-shrink:0;}
 .view-toggle:hover{color:var(--text);border-color:var(--accent);}
 .view-toggle.list-active{color:var(--accent);border-color:var(--accent);background:rgba(168,85,247,.08);}
@@ -218,11 +219,21 @@ main{padding:18px 22px;max-width:1280px;margin:0 auto;}
 
 @keyframes spin{to{transform:rotate(360deg);}}
 @media(max-width:600px){
-  header{padding:11px 14px;}main{padding:12px 14px;}
+  header{padding:11px 14px;gap:7px;}main{padding:12px 14px;}
   .fr{grid-template-columns:1fr;}
   .card{grid-template-columns:44px 1fr;}.acts{grid-column:1/-1;justify-content:flex-end;}
   .result-card{grid-template-columns:44px 1fr;}.result-actions{grid-column:1/-1;flex-direction:row;}
   .cc{min-height:48px;}
+  /* Compact header: icon-only Sync & Settings, hide sync status text */
+  .hbtn .btn-txt{display:none;}
+  .hbtn{padding:8px 10px;}
+  #sync-status-wrap{align-items:center!important;}
+  .sync-status{display:none;}
+  /* Stats: compact on mobile */
+  .stats{gap:7px;}
+  .sc{padding:10px 7px;}
+  .sc .n{font-size:1.35rem;}
+  .sc .l{font-size:.6rem;}
 }
 </style>
 </head>
@@ -234,13 +245,13 @@ main{padding:18px 22px;max-width:1280px;margin:0 auto;}
   <div id="sync-status-wrap" style="display:none;flex-direction:column;align-items:flex-end;gap:2px">
     <button class="hbtn sync" id="sync-btn" onclick="syncFromSheets()">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 013.51 15"/></svg>
-      Sync Sheet
+      <span class="btn-txt">Sync Sheet</span>
     </button>
     <div class="sync-status" id="sync-status-label"></div>
   </div>
   <button class="hbtn" onclick="openSettingsModal()" title="Settings">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-    Settings
+    <span class="btn-txt">Settings</span>
   </button>
   <button class="hbtn primary" onclick="openModal()" style="margin-left:4px">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -273,12 +284,14 @@ main{padding:18px 22px;max-width:1280px;margin:0 auto;}
       <option value="artist">Artist A–Z</option>
       <option value="venue">Venue A–Z</option>
     </select>
+  </div>
+  <div class="stats" id="stats-up"></div>
+  <div class="viewbar">
     <button class="view-toggle" id="view-toggle-btn" onclick="toggleUpcomingView()" title="Toggle list/card view">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
       List
     </button>
   </div>
-  <div class="stats" id="stats-up"></div>
   <div class="grid" id="grid-up"></div>
 </div>
 
@@ -483,19 +496,37 @@ main{padding:18px 22px;max-width:1280px;margin:0 auto;}
       <div><strong style="color:var(--text)">Step 2 — Paste this script</strong><br>
         Delete everything in the editor, then paste exactly this:
         <pre style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:.75rem;overflow-x:auto;margin-top:8px;white-space:pre">function doGet(e) {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet()
-                  .getSheetByName('2026');
-  const [headers, ...rows] = sheet.getDataRange()
-                                   .getDisplayValues();
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('2026');
+  const cb = (e &amp;&amp; e.parameter &amp;&amp; e.parameter.callback) || 'concertTrackerCallback';
+
+  if (e &amp;&amp; e.parameter &amp;&amp; e.parameter.action === 'append') {
+    try {
+      const show = JSON.parse(e.parameter.data);
+      const d = show.date ? new Date(show.date + 'T12:00:00') : null;
+      const day = d ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()] : '';
+      const ds = [show.doors, show.showTime].filter(Boolean).join(' / ');
+      const tix = {y:'y',comp:'guest',door:'free',awaiting:'awaiting'}[show.tixStatus] || 'n';
+      sheet.appendRow([show.date||'', day, show.artist||'', show.venue||'',
+                       ds, tix, show.who||'', show.tixLoc||'', show.notes||'']);
+      return ContentService.createTextOutput(cb + '({"ok":true})')
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    } catch(err) {
+      return ContentService.createTextOutput(cb + '({"ok":false})')
+        .setMimeType(ContentService.MimeType.JAVASCRIPT);
+    }
+  }
+
+  const [headers, ...rows] = sheet.getDataRange().getDisplayValues();
   const shows = rows.map(r =>
     Object.fromEntries(headers.map((h, i) => [h, r[i]]))
   );
-  const cb = (e &amp;&amp; e.parameter &amp;&amp; e.parameter.callback)
-               || 'concertTrackerCallback';
   return ContentService
     .createTextOutput(cb + '(' + JSON.stringify(shows) + ')')
     .setMimeType(ContentService.MimeType.JAVASCRIPT);
 }</pre>
+        <div style="background:rgba(168,85,247,.07);border:1px solid rgba(168,85,247,.2);border-radius:8px;padding:9px 12px;font-size:.76rem;color:#c4b5fd;margin-top:8px">
+          ✨ This script handles both sync <em>and</em> pushing shows you add from the <strong>Discover</strong> tab directly to your sheet.
+        </div>
       </div>
       <div><strong style="color:var(--text)">Step 3 — Deploy as a web app</strong><br>
         Click <strong>Deploy → New deployment</strong>.<br>
@@ -955,7 +986,7 @@ function renderDiscover(){
   }
 }
 
-function addFromDiscover(idx){
+async function addFromDiscover(idx){
   const r=discoverCache[idx];
   if(!r) return;
   const s={
@@ -966,11 +997,48 @@ function addFromDiscover(idx){
     cancelled:false,
   };
   shows.push(s); persist();
-  // Update button
   const btn=document.getElementById('addbtn-'+idx);
   if(btn){ btn.textContent='✓ Added'; btn.classList.add('added'); btn.onclick=null; }
   const card=document.getElementById('rc-'+idx);
   if(card) card.classList.add('already-added');
+  if(settings.sheetsUrl&&settings.sheetsUrl.includes('script.google.com')){
+    if(btn) btn.textContent='✓ Syncing…';
+    try{
+      const ok=await pushShowToSheet(s);
+      if(btn) btn.textContent=ok?'✓ In sheet!':'✓ Added';
+    }catch(e){ if(btn) btn.textContent='✓ Added'; }
+    setTimeout(()=>{ if(btn) btn.textContent='✓ Added'; },3000);
+  }
+}
+
+async function pushShowToSheet(show){
+  const url=settings.sheetsUrl;
+  if(!url||!url.includes('script.google.com')) return false;
+  const payload={artist:show.artist,venue:show.venue,date:show.date,
+    doors:show.doors,showTime:show.showTime,tixStatus:show.tixStatus,
+    tixLoc:show.tixLoc,who:show.who,notes:(show.notes||'').slice(0,200)};
+  const sep=url.includes('?')?'&':'?';
+  const appendUrl=url+sep+'action=append&data='+encodeURIComponent(JSON.stringify(payload));
+  if(window.location.protocol!=='file:'){
+    try{
+      const resp=await fetch('https://corsproxy.io/?'+encodeURIComponent(appendUrl));
+      if(!resp.ok) return false;
+      const text=await resp.text();
+      const m=text.match(/^[^(]+\((.+)\)$/s);
+      const result=JSON.parse(m?m[1]:text);
+      return !!(result&&result.ok);
+    }catch(e){ return false; }
+  }
+  return new Promise(resolve=>{
+    const cbName='ct_push_'+Date.now();
+    let script;
+    const tid=setTimeout(()=>{ if(script?.parentNode) script.parentNode.removeChild(script); delete window[cbName]; resolve(false); },10000);
+    window[cbName]=result=>{ clearTimeout(tid); if(script?.parentNode) script.parentNode.removeChild(script); delete window[cbName]; resolve(!!(result&&result.ok)); };
+    script=document.createElement('script');
+    script.onerror=()=>{ clearTimeout(tid); delete window[cbName]; resolve(false); };
+    script.src=appendUrl+'&callback='+cbName;
+    document.head.appendChild(script);
+  });
 }
 
 // ════════════════════════════════════════════════════════
