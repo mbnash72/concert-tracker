@@ -1,6 +1,6 @@
 // Concert Tracker Service Worker — network-first strategy
 // Increment CACHE_VERSION whenever you deploy updates to force a refresh
-const CACHE_VERSION = 'ct-v5';
+const CACHE_VERSION = 'ct-v6';
 
 self.addEventListener('install', () => self.skipWaiting());
 
