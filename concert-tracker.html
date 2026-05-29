@@ -1174,9 +1174,14 @@ function closeModal(){ document.getElementById('modal-overlay').classList.add('h
 function saveShow(){
   const artist=document.getElementById('f-artist').value.trim();
   if(!artist){ alert('Please enter the Artist/Band name.'); return; }
+  const isNew=!editId;
   const s={id:editId||uid(),artist,date:document.getElementById('f-date').value,venue:document.getElementById('f-venue').value.trim(),doors:document.getElementById('f-doors').value,showTime:document.getElementById('f-show').value,tixStatus:document.getElementById('f-tix').value,tixLoc:document.getElementById('f-tixloc').value,tixRef:document.getElementById('f-tixref').value.trim(),who:document.getElementById('f-who').value.trim(),notes:document.getElementById('f-notes').value.trim(),cancelled:document.getElementById('f-cancelled').checked};
   if(editId) shows=shows.map(x=>x.id===editId?s:x); else shows.push(s);
   persist(); closeModal(); renderAll();
+  // Push new shows to Google Sheet so all devices see them
+  if(isNew&&settings.sheetsUrl&&settings.sheetsUrl.includes('script.google.com')){
+    pushShowToSheet(s);
+  }
 }
 function delShow(id){
   const s=shows.find(x=>x.id===id);
