@@ -144,6 +144,7 @@ main{padding:18px 22px;max-width:1280px;margin:0 auto;}
 .result-source{position:absolute;top:8px;right:8px;font-size:.6rem;padding:1px 6px;border-radius:3px;font-weight:700;text-transform:uppercase;}
 .src-bit{background:rgba(249,115,22,.15);color:var(--orange);}
 .src-tm{background:rgba(96,165,250,.15);color:var(--blue);}
+.src-jb{background:rgba(34,197,94,.15);color:#22c55e;}
 .add-btn{background:var(--glow);border:1px solid var(--accent);color:var(--accent);padding:7px 14px;border-radius:7px;cursor:pointer;font-size:.8rem;font-weight:600;white-space:nowrap;transition:all .2s;display:flex;align-items:center;gap:5px;}
 .add-btn:hover{background:var(--accent);color:#fff;}
 .add-btn.added{background:rgba(34,197,94,.1);border-color:var(--green);color:var(--green);cursor:default;}
@@ -466,6 +467,11 @@ main{padding:18px 22px;max-width:1280px;margin:0 auto;}
       <label>Ticketmaster API Key <span style="color:var(--yellow);font-size:.65rem">(FREE · requires account)</span></label>
       <input class="fi" id="s-tm" placeholder="Paste your API key…">
       <div class="skey-desc">Get a free key in minutes at <a href="https://developer.ticketmaster.com/" target="_blank">developer.ticketmaster.com</a> → Create App. Adds broader venue coverage.</div>
+    </div>
+    <div class="skey-row">
+      <label>JamBase API Key <span style="color:#22c55e;font-size:.65rem">(FREE non-commercial tier)</span></label>
+      <input class="fi" id="s-jb" placeholder="Paste your JamBase API key…">
+      <div class="skey-desc">Free for personal/hobby use at <a href="https://data.jambase.com" target="_blank">data.jambase.com</a> → Sign in with GitHub. Excellent for jam bands, festivals &amp; independent venues.</div>
     </div>
     <div class="divider"></div>
     <div class="section-label">Location</div>
@@ -916,6 +922,46 @@ async function fetchTicketmaster(artistName){
   }catch(err){ return []; }
 }
 
+async function fetchJambase(artistName){
+  const key=settings.jambaseKey;
+  if(!key) return [];
+  const params=new URLSearchParams({artistName:artistName,geoStateIso:'US-CA',perPage:'20'});
+  try{
+    const r=await fetch(`https://api.data.jambase.com/v3/events?${params}`,{
+      headers:{Authorization:'Bearer '+key,Accept:'application/json'},
+    });
+    if(!r.ok) return [];
+    const data=await r.json();
+    if(!data.success||!Array.isArray(data.events)) return [];
+    return data.events
+      .filter(e=>{
+        const addr=e.location&&e.location.address;
+        if(!addr) return false;
+        const city=(addr.addressLocality||'').toLowerCase();
+        const region=((addr.addressRegion&&addr.addressRegion.alternateName)||'').toLowerCase();
+        if(region&&region!=='ca'&&region!=='california') return false;
+        return BAY_AREA.some(b=>city.includes(b));
+      })
+      .map(e=>{
+        const addr=e.location&&e.location.address;
+        const region=(addr&&addr.addressRegion&&addr.addressRegion.alternateName)||'';
+        const city=(addr&&addr.addressLocality)||'';
+        const performers=(e.performer||[]).map(p=>p.name).join(', ');
+        return {
+          _src:'jambase',
+          artist:artistName,
+          date:e.startDate?e.startDate.slice(0,10):'',
+          venue:(e.location&&e.location.name)||'',
+          city:city+(region?', '+region:''),
+          showTime:e.startDate&&e.startDate.length>10?e.startDate.slice(11,16):'',
+          doors:e.doorTime||'',
+          ticketUrl:(e.offers&&e.offers[0])?e.offers[0].url:'',
+          lineup:performers,
+        };
+      });
+  }catch(err){ return []; }
+}
+
 function alreadyAdded(res){
   return shows.some(s=>
     s.artist.toLowerCase()===res.artist.toLowerCase()&&
@@ -940,10 +986,10 @@ async function discoverShows(){
     const a=artists[i];
     label.textContent=`Searching for ${a.name}… (${i+1}/${artists.length})`;
     fill.style.width=`${Math.round((i/artists.length)*100)}%`;
-    const [bit,tm]=await Promise.all([fetchBandsintown(a.name),fetchTicketmaster(a.name)]);
+    const [bit,tm,jb]=await Promise.all([fetchBandsintown(a.name),fetchTicketmaster(a.name),fetchJambase(a.name)]);
     // merge, dedupe by date+venue
     const seen=new Set();
-    [...bit,...tm].forEach(r=>{
+    [...bit,...tm,...jb].forEach(r=>{
       const key=`${r.date}|${r.venue.toLowerCase()}`;
       if(!seen.has(key)){ seen.add(key); results.push(r); }
     });
@@ -967,8 +1013,8 @@ function renderDiscoverResults(results){
     const added=alreadyAdded(r);
     const d=r.date?parseDate(r.date):null;
     let db=d?`<div class="dblock"><div class="mo">${SHORT[d.getMonth()]}</div><div class="dy">${d.getDate()}</div><div class="dw">${DAYS[d.getDay()]}</div></div>`:'<div class="dblock" style="font-size:.65rem;color:var(--muted);display:flex;align-items:center;justify-content:center">TBA</div>';
-    const srcCls=r._src==='ticketmaster'?'src-tm':'src-bit';
-    const srcLbl=r._src==='ticketmaster'?'Ticketmaster':'Bandsintown';
+    const srcCls=r._src==='ticketmaster'?'src-tm':r._src==='jambase'?'src-jb':'src-bit';
+    const srcLbl=r._src==='ticketmaster'?'Ticketmaster':r._src==='jambase'?'JamBase':'Bandsintown';
     let chips='';
     if(r.showTime) chips+=`<span class="chip">🎵 ${fmtT(r.showTime)}</span>`;
     if(r.city) chips+=`<span class="chip b">📍 ${esc(r.city)}</span>`;
@@ -995,13 +1041,13 @@ function renderDiscover(){
   // Show API status notice
   const hasBit=settings.biAppId;
   const hasTm=settings.tmKey;
+  const hasJb=settings.jambaseKey;
   let notice='';
-  if(!hasBit&&!hasTm){
-    notice=`<div class="api-notice">
-      <strong>💡 Tip:</strong> For best results, go to <strong>Settings</strong> and enter a Bandsintown App ID (free, any name works) and/or a free <a href="https://developer.ticketmaster.com" target="_blank">Ticketmaster API key</a>. Bandsintown has excellent coverage for jazz &amp; indie acts.
-    </div>`;
-  } else if(!hasTm){
-    notice=`<div class="api-notice"><strong>💡 Tip:</strong> Add a free <a href="https://developer.ticketmaster.com" target="_blank">Ticketmaster API key</a> in Settings for expanded venue coverage.</div>`;
+  const missing=[];
+  if(!hasTm) missing.push(`<a href="https://developer.ticketmaster.com" target="_blank">Ticketmaster</a>`);
+  if(!hasJb) missing.push(`<a href="https://data.jambase.com" target="_blank">JamBase</a>`);
+  if(missing.length){
+    notice=`<div class="api-notice"><strong>💡 Tip:</strong> Add free API keys for ${missing.join(' and ')} in <strong>Settings</strong> to expand show discovery — especially useful for Bay Area venues and jam/festival acts.</div>`;
   }
   document.getElementById('api-notice-area').innerHTML=notice;
   if(discoverCache.length) renderDiscoverResults(discoverCache);
@@ -1146,6 +1192,7 @@ function openSettingsModal(){
   document.getElementById('s-autosync').checked=!!settings.autoSync;
   document.getElementById('s-bit').value=settings.biAppId||'';
   document.getElementById('s-tm').value=settings.tmKey||'';
+  document.getElementById('s-jb').value=settings.jambaseKey||'';
   document.getElementById('s-radius').value=String(settings.radius||50);
   document.getElementById('s-city').value=settings.city||'San Francisco, CA';
   // Show share button only when hosted (not file://) and a sync URL is configured
@@ -1170,6 +1217,7 @@ function saveSettings(){
   settings.autoSync=document.getElementById('s-autosync').checked;
   settings.biAppId=document.getElementById('s-bit').value.trim()||'concert_tracker_app';
   settings.tmKey=document.getElementById('s-tm').value.trim();
+  settings.jambaseKey=document.getElementById('s-jb').value.trim();
   settings.radius=parseInt(document.getElementById('s-radius').value)||50;
   settings.city=document.getElementById('s-city').value.trim();
   pSettings();
@@ -1583,82 +1631,9 @@ function doImport(){
 }
 
 // ════════════════════════════════════════════════════════
-//  CALENDAR EXPORT (.ics) — add shows to Apple / Google / any calendar
+//  CALENDAR — add shows to Google Calendar (opens pre-filled)
 // ════════════════════════════════════════════════════════
 function icsPad(n){ return String(n).padStart(2,'0'); }
-function icsEsc(str){ return String(str||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n'); }
-function icsFold(line){
-  if(line.length<=73) return line;
-  let out='',i=0;
-  while(i<line.length){ out+=(i===0?'':'\r\n ')+line.slice(i,i+73); i+=73; }
-  return out;
-}
-function buildICS(list){
-  const now=new Date();
-  const stamp=`${now.getUTCFullYear()}${icsPad(now.getUTCMonth()+1)}${icsPad(now.getUTCDate())}T${icsPad(now.getUTCHours())}${icsPad(now.getUTCMinutes())}${icsPad(now.getUTCSeconds())}Z`;
-  const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Concert Tracker//EN','CALSCALE:GREGORIAN'];
-  list.forEach(s=>{
-    if(!s.date) return;
-    const [Y,Mo,D]=s.date.split('-').map(Number);
-    let dtStart,dtEnd;
-    if(s.showTime){
-      const [hh,mm]=s.showTime.split(':').map(Number);
-      const st=new Date(Y,Mo-1,D,hh,mm);
-      const en=new Date(st.getTime()+3*60*60*1000); // default 3-hour event
-      const f=dt=>`${dt.getFullYear()}${icsPad(dt.getMonth()+1)}${icsPad(dt.getDate())}T${icsPad(dt.getHours())}${icsPad(dt.getMinutes())}00`;
-      dtStart='DTSTART:'+f(st); dtEnd='DTEND:'+f(en);
-    } else {
-      const sd=new Date(Y,Mo-1,D), ed=new Date(Y,Mo-1,D+1);
-      const f=dt=>`${dt.getFullYear()}${icsPad(dt.getMonth()+1)}${icsPad(dt.getDate())}`;
-      dtStart='DTSTART;VALUE=DATE:'+f(sd); dtEnd='DTEND;VALUE=DATE:'+f(ed);
-    }
-    const desc=[];
-    if(s.doors) desc.push('Doors: '+fmtT(s.doors));
-    if(s.showTime) desc.push('Show: '+fmtT(s.showTime));
-    if(s.who) desc.push('Who: '+s.who);
-    if(s.tixStatus) desc.push('Tickets: '+(s.tixLoc||(s.tixStatus==='comp'?'Comp / Guest list':'Yes')));
-    if(s.tixRef) desc.push(s.tixRef);
-    if(s.notes) desc.push(s.notes);
-    lines.push('BEGIN:VEVENT');
-    lines.push('UID:'+s.id+'@concert-tracker');
-    lines.push('DTSTAMP:'+stamp);
-    lines.push(dtStart);
-    lines.push(dtEnd);
-    lines.push(icsFold('SUMMARY:'+icsEsc(s.artist)));
-    if(s.venue) lines.push(icsFold('LOCATION:'+icsEsc(s.venue)));
-    if(desc.length) lines.push(icsFold('DESCRIPTION:'+icsEsc(desc.join('\n'))));
-    lines.push('END:VEVENT');
-  });
-  lines.push('END:VCALENDAR');
-  return lines.join('\r\n');
-}
-async function downloadICS(filename,text){
-  // Web Share API — works best on iPhone, both in Safari and the installed home-screen app.
-  // Opens the iOS Share Sheet so you can tap Calendar to add the event(s).
-  try{
-    const file=new File([text],filename,{type:'text/calendar'});
-    if(navigator.canShare && navigator.canShare({files:[file]})){
-      await navigator.share({files:[file]});
-      return;
-    }
-  }catch(e){
-    if(e && e.name==='AbortError') return; // user closed the share sheet — that's fine
-    // any other error: fall through to the download methods below
-  }
-  // Fallback for desktop browsers and older devices
-  const blob=new Blob([text],{type:'text/calendar;charset=utf-8'});
-  const url=URL.createObjectURL(blob);
-  const standalone = window.navigator.standalone===true || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
-  if(standalone){
-    window.location.href='data:text/calendar;charset=utf-8,'+encodeURIComponent(text);
-  } else {
-    const a=document.createElement('a');
-    a.href=url; a.download=filename;
-    document.body.appendChild(a); a.click();
-    setTimeout(()=>{ if(a.parentNode) a.parentNode.removeChild(a); },1500);
-  }
-  setTimeout(()=>URL.revokeObjectURL(url),60000);
-}
 // Build a Google Calendar "add event" link with the show pre-filled
 function gcalUrl(s){
   const [Y,Mo,D]=s.date.split('-').map(Number);
