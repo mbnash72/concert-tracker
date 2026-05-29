@@ -204,6 +204,11 @@ main{padding:18px 22px;max-width:1280px;margin:0 auto;}
 .viewbar{display:flex;justify-content:flex-end;gap:8px;margin-bottom:3px;flex-wrap:wrap;}
 .view-toggle.cal-all{color:var(--blue);}
 .view-toggle.cal-all:hover{color:var(--blue);border-color:var(--blue);background:rgba(96,165,250,.08);}
+.gcal-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 13px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;text-decoration:none;color:var(--text);transition:border-color .2s;}
+.gcal-row:hover{border-color:var(--accent);}
+.gcal-artist{font-size:.88rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.gcal-meta{font-size:.72rem;color:var(--muted);margin-top:1px;}
+.gcal-add{flex-shrink:0;background:var(--glow);border:1px solid var(--accent);color:var(--accent);padding:5px 12px;border-radius:6px;font-size:.78rem;font-weight:600;}
 .view-toggle{background:var(--surface);border:1px solid var(--border);color:var(--muted);padding:8px 11px;border-radius:8px;cursor:pointer;font-size:.82rem;display:flex;align-items:center;gap:5px;transition:all .2s;white-space:nowrap;flex-shrink:0;}
 .view-toggle:hover{color:var(--text);border-color:var(--accent);}
 .view-toggle.list-active{color:var(--accent);border-color:var(--accent);background:rgba(168,85,247,.08);}
@@ -585,6 +590,18 @@ main{padding:18px 22px;max-width:1280px;margin:0 auto;}
     </div>
   </div>
   <div class="mftr"><button class="bcancel" onclick="closeImportModal()">Cancel</button><button class="bsave" id="btn-import" onclick="doImport()" style="display:none">Import</button></div>
+</div>
+</div>
+
+<!-- ADD-TO-CALENDAR MODAL -->
+<div class="overlay hidden" id="cal-overlay" onclick="oclick(event,'cal-overlay',closeCalModal)">
+<div class="modal">
+  <div class="mhdr"><h2>📅 Add Ticketed Shows</h2><button class="xbtn" onclick="closeCalModal()">×</button></div>
+  <div class="mbody">
+    <div style="font-size:.82rem;color:var(--muted);line-height:1.5">Tap each show to open it in Google Calendar, where you can choose which calendar to save it to.</div>
+    <div id="cal-list" style="display:flex;flex-direction:column;gap:7px"></div>
+  </div>
+  <div class="mftr"><button class="bsave" onclick="closeCalModal()">Done</button></div>
 </div>
 </div>
 
@@ -1642,18 +1659,51 @@ async function downloadICS(filename,text){
   }
   setTimeout(()=>URL.revokeObjectURL(url),60000);
 }
+// Build a Google Calendar "add event" link with the show pre-filled
+function gcalUrl(s){
+  const [Y,Mo,D]=s.date.split('-').map(Number);
+  let dates;
+  if(s.showTime){
+    const [hh,mm]=s.showTime.split(':').map(Number);
+    const st=new Date(Y,Mo-1,D,hh,mm);
+    const en=new Date(st.getTime()+3*60*60*1000); // default 3-hour event
+    const f=dt=>`${dt.getFullYear()}${icsPad(dt.getMonth()+1)}${icsPad(dt.getDate())}T${icsPad(dt.getHours())}${icsPad(dt.getMinutes())}00`;
+    dates=f(st)+'/'+f(en);
+  } else {
+    const sd=new Date(Y,Mo-1,D), ed=new Date(Y,Mo-1,D+1);
+    const f=dt=>`${dt.getFullYear()}${icsPad(dt.getMonth()+1)}${icsPad(dt.getDate())}`;
+    dates=f(sd)+'/'+f(ed);
+  }
+  const details=[];
+  if(s.doors) details.push('Doors: '+fmtT(s.doors));
+  if(s.showTime) details.push('Show: '+fmtT(s.showTime));
+  if(s.who) details.push('Who: '+s.who);
+  if(s.tixStatus) details.push('Tickets: '+(s.tixLoc||(s.tixStatus==='comp'?'Comp / Guest list':'Yes')));
+  if(s.tixRef) details.push(s.tixRef);
+  if(s.notes) details.push(s.notes);
+  const params=new URLSearchParams({action:'TEMPLATE',text:s.artist||'Concert',dates:dates,ctz:'America/Los_Angeles',location:s.venue||'',details:details.join('\n')});
+  return 'https://calendar.google.com/calendar/render?'+params.toString();
+}
 function addShowToCalendar(id){
   const s=shows.find(x=>x.id===id);
   if(!s) return;
   if(!s.date){ alert('This show has no date yet, so it can\'t be added to a calendar. Edit it and add a date first.'); return; }
-  const fname=((s.artist||'concert').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').slice(0,40)||'concert')+'.ics';
-  downloadICS(fname, buildICS([s]));
+  window.open(gcalUrl(s),'_blank');
 }
 function addAllTicketedToCalendar(){
-  const list=shows.filter(s=>!isCxl(s)&&!isPast(s)&&s.date&&(s.tixStatus==='y'||s.tixStatus==='comp'));
+  const list=shows.filter(s=>!isCxl(s)&&!isPast(s)&&s.date&&(s.tixStatus==='y'||s.tixStatus==='comp')).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
   if(!list.length){ alert('No upcoming ticketed shows with a date to add yet.\n\nMark a show as “Have tickets” or “Comp / Guest list” and give it a date, and it will be included here.'); return; }
-  downloadICS('concert-tracker-tickets.ics', buildICS(list));
+  document.getElementById('cal-list').innerHTML=list.map(s=>{
+    const d=parseDate(s.date);
+    const when=d?`${SHORT[d.getMonth()]} ${d.getDate()}`:'';
+    return `<a class="gcal-row" href="${esc(gcalUrl(s))}" target="_blank" rel="noopener">
+      <div style="min-width:0"><div class="gcal-artist">${esc(s.artist)}</div><div class="gcal-meta">${when}${s.venue?' · '+esc(s.venue):''}</div></div>
+      <span class="gcal-add">+ Add</span>
+    </a>`;
+  }).join('');
+  document.getElementById('cal-overlay').classList.remove('hidden');
 }
+function closeCalModal(){ document.getElementById('cal-overlay').classList.add('hidden'); }
 
 // ════════════════════════════════════════════════════════
 //  RENDER ALL + INIT
