@@ -1207,6 +1207,9 @@ async function syncFromSheets(silent=false){
         updated++;
       } else { shows.push(s); added++; }
     });
+    // Auto-remove any duplicate shows (same artist+venue+date) that may have crept in
+    const _seen=new Set();
+    shows=shows.filter(s=>{ const k=`${(s.artist||'').trim().toLowerCase()}|${(s.venue||'').trim().toLowerCase()}|${s.date||''}`; if(_seen.has(k)) return false; _seen.add(k); return true; });
     persist(); settings.lastSync=new Date().toISOString(); pSettings(); renderAll(); updateSyncUI();
     btn.innerHTML='✓ Synced!';
     document.getElementById('sync-status-label').textContent=`Synced: +${added} new, ${updated} updated`;
@@ -1316,8 +1319,8 @@ async function syncViaAppsScript(url){
 function appsScriptToShows(rows){
   if(!Array.isArray(rows)||!rows.length) return [];
   return rows.map(row=>{
-    const artist=row['Band/Artist']||row['Artist']||row['Band']||'';
-    const venue=row['Venue']||'';
+    const artist=(row['Band/Artist']||row['Artist']||row['Band']||'').trim();
+    const venue=(row['Venue']||'').trim();
     if(!artist) return null;
 
     // Parse date — Apps Script getDisplayValues() returns "M/D/YYYY"
