@@ -925,7 +925,9 @@ async function fetchTicketmaster(artistName){
 async function fetchJambase(artistName){
   const key=settings.jambaseKey;
   if(!key) return [];
-  const params=new URLSearchParams({artistName:artistName,geoStateIso:'US-CA',perPage:'20'});
+  // geoMetroId=jambase:4 = JamBase's "San Francisco Bay Area" metro
+  // More accurate than city-name filtering — JamBase knows which venues belong to this metro
+  const params=new URLSearchParams({artistName:artistName,geoMetroId:'jambase:4',perPage:'20'});
   try{
     const r=await fetch(`https://api.data.jambase.com/v3/events?${params}`,{
       headers:{Authorization:'Bearer '+key,Accept:'application/json'},
@@ -933,32 +935,23 @@ async function fetchJambase(artistName){
     if(!r.ok) return [];
     const data=await r.json();
     if(!data.success||!Array.isArray(data.events)) return [];
-    return data.events
-      .filter(e=>{
-        const addr=e.location&&e.location.address;
-        if(!addr) return false;
-        const city=(addr.addressLocality||'').toLowerCase();
-        const region=((addr.addressRegion&&addr.addressRegion.alternateName)||'').toLowerCase();
-        if(region&&region!=='ca'&&region!=='california') return false;
-        return BAY_AREA.some(b=>city.includes(b));
-      })
-      .map(e=>{
-        const addr=e.location&&e.location.address;
-        const region=(addr&&addr.addressRegion&&addr.addressRegion.alternateName)||'';
-        const city=(addr&&addr.addressLocality)||'';
-        const performers=(e.performer||[]).map(p=>p.name).join(', ');
-        return {
-          _src:'jambase',
-          artist:artistName,
-          date:e.startDate?e.startDate.slice(0,10):'',
-          venue:(e.location&&e.location.name)||'',
-          city:city+(region?', '+region:''),
-          showTime:e.startDate&&e.startDate.length>10?e.startDate.slice(11,16):'',
-          doors:e.doorTime||'',
-          ticketUrl:(e.offers&&e.offers[0])?e.offers[0].url:'',
-          lineup:performers,
-        };
-      });
+    return data.events.map(e=>{
+      const addr=e.location&&e.location.address;
+      const city=(addr&&addr.addressLocality)||'';
+      const region=(addr&&addr.addressRegion&&addr.addressRegion.alternateName)||'';
+      const performers=(e.performer||[]).map(p=>p.name).join(', ');
+      return {
+        _src:'jambase',
+        artist:artistName,
+        date:e.startDate?e.startDate.slice(0,10):'',
+        venue:(e.location&&e.location.name)||'',
+        city:city+(region?', '+region:''),
+        showTime:e.startDate&&e.startDate.length>10?e.startDate.slice(11,16):'',
+        doors:e.doorTime||'',
+        ticketUrl:(e.offers&&e.offers[0])?e.offers[0].url:'',
+        lineup:performers,
+      };
+    });
   }catch(err){ return []; }
 }
 
